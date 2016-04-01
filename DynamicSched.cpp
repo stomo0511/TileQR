@@ -38,9 +38,10 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 	// Definitions and Initialize　END
 	//////////////////////////////////////////////////////////////////////
 	
+	double ttime = omp_get_wtime();
 	//////////////////////////////////////////////////////////////////////
 	// Dynamic Scheduling tile QR
-	#pragma omp parallel private(F)
+	#pragma omp parallel private(F) firstprivate(ttime)
 	{
 		bool my_flag = true;
 		bool my_turn = false;
@@ -75,7 +76,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 						#ifdef DEBUG
 						#pragma omp critical
-						cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
+						cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 						#endif
 
 						// Enqueue TSQRT task
@@ -137,7 +138,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 						#ifdef DEBUG
 						#pragma omp critical
-						cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
+						cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 						#endif
 
 						// Enqueue TSQRT task
@@ -203,7 +204,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 						#ifdef DEBUG
 						#pragma omp critical
-						cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << "\n";
+						cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 						#endif
 
 						// Enqueue SSRFB task
@@ -237,7 +238,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 						#ifdef DEBUG
 						#pragma omp critical
-						cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << "\n";
+						cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 						#endif
 
 						// Enqueue GEQRT task

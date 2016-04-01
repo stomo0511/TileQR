@@ -27,10 +27,12 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 	Progress_Table Pt( MT, NT, min(MT,NT) );
 	Pt.Init();
 	Pt.setIJK(0, 0, 0, NYET);
+
+	double ttime = omp_get_wtime();
 	
 	////////////////////////////////////////////////////////////////////////////
 	// Static Pipeline tile QR
-	#pragma omp parallel
+	#pragma omp parallel firstprivate(ttime)
 	{
 		int tk = 0;
 		int tj = omp_get_thread_num();
@@ -74,7 +76,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 					#ifdef DEBUG
 					#pragma omp critical
-					cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
+					cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 					#endif
 
 					Pt.setIJK(tk, tk, tk, DONE);			// Progress table update
@@ -88,7 +90,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					
 					#ifdef DEBUG
 					#pragma omp critical
-					cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
+					cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 					#endif
 
 					Pt.setIJK(ti, tk, tk, DONE);			// Progress table update
@@ -107,7 +109,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 					#ifdef DEBUG
 					#pragma omp critical
-					cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << "\n";
+					cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 					#endif
 
 				}   // LARFB END
@@ -122,7 +124,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 					#ifdef DEBUG
 					#pragma omp critical
-					cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << "\n";
+					cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 					#endif
 
 					Pt.setIJK(ti, tj, tk, DONE);			// Progress table update

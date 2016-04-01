@@ -28,9 +28,11 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 	Pt.Init();
 	Pt.setIJK(0, 0, 0, NYET);
 	
+	double ttime = omp_get_wtime();
+
 	////////////////////////////////////////////////////////////////////////////
 	// Left Looking tile QR
-	#pragma omp parallel for schedule(static,1)
+	#pragma omp parallel for schedule(static,1) firstprivate(ttime)
 	for (int tk = 0; tk < NT; tk++)
 	{
 			
@@ -45,7 +47,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 				#ifdef DEBUG
 				#pragma omp critical
-				cout << "LARFB(" << tl << "," << tk << "," << tl << ") : " << omp_get_thread_num() << "\n";
+				cout << "LARFB(" << tl << "," << tk << "," << tl << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 				#endif
 			}
 
@@ -59,7 +61,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 					#ifdef DEBUG
 					#pragma omp critical
-					cout << "SSRFB(" << ti << "," << tk << "," << tl << ") : " << omp_get_thread_num() << "\n";
+					cout << "SSRFB(" << ti << "," << tk << "," << tl << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 					#endif
 				}
 			} // End of i-loop
@@ -73,7 +75,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 				#ifdef DEBUG
 				#pragma omp critical
-				cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
+				cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 				#endif
 			}
 
@@ -88,7 +90,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 					#ifdef DEBUG
 					#pragma omp critical
-					cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
+					cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 					#endif
 				}
 

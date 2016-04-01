@@ -32,9 +32,11 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 	for (int i=0; i<MT; i++)
 		Ap[i] = (int *)malloc(sizeof(int) * NT);
 
+	double ttime = omp_get_wtime();
+
 	//////////////////////////////////////////////////////////////////////
 	// Right Looking tile QR Task version
-	#pragma omp parallel
+	#pragma omp parallel firstprivate(ttime)
 	{
 		#pragma omp single
 		{
@@ -47,9 +49,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 						#ifdef DEBUG
 						#pragma omp critical
-						{
-							cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
-						}
+						cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 						#endif
 					}
 				}
@@ -62,9 +62,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 						#ifdef DEBUG
 						#pragma omp critical
-						{
-							cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << "\n";
-						}
+						cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 						#endif
 					}
 				}
@@ -78,9 +76,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 							#ifdef DEBUG
 							#pragma omp critical
-							{
-								cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
-							}
+							cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 							#endif
 						}
 					}
@@ -93,9 +89,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 							#ifdef DEBUG
 							#pragma omp critical
-							{
-								cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << "\n";
-							}
+							cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 							#endif
 						}
 					} // j-LOOP END
