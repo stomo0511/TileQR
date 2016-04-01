@@ -1,0 +1,103 @@
+//
+//  LeftLooking
+//
+//  Created by T. Suzuki on 2014/01/05.
+//  Copyright (c) 2013 T. Suzuki. All rights reserved.
+//
+
+#include <iostream>
+#include <cstdlib>
+#include <cassert>
+#include <omp.h>
+
+#include "Progress.hpp"
+#include <CoreBlasTile.hpp>
+#include <TMatrix.hpp>
+
+#ifndef __Test__Min__
+#define __Test__Min__
+
+#define min(a,b) (((a)<(b)) ? (a) : (b))
+
+#endif // __Test__Min__
+
+void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
+{
+	// Progress Table
+	Progress_Table Pt( MT, NT, min(MT,NT) );
+	Pt.Init();
+	Pt.setIJK(0, 0, 0, NYET);
+	
+	////////////////////////////////////////////////////////////////////////////
+	// Left Looking tile QR
+	#pragma omp parallel for schedule(static,1)
+	for (int tk = 0; tk < NT; tk++)
+	{
+			
+		for (int tl = 0; tl < min(MT,tk); tl++)
+		{
+
+			Pt.check_waitIJK(tl, tl, tl);	// Check for GEQRT_(tl,tl,tl)
+
+			// LARFB
+			{
+				LARFB( PlasmaLeft, PlasmaTrans, A(tl,tl), T(tl,tl), A(tl,tk) );
+
+				#ifdef DEBUG
+				#pragma omp critical
+				cout << "LARFB(" << tl << "," << tk << ") : " << omp_get_thread_num() << "\n";
+				#endif
+			}
+
+			for (int ti = tl+1; ti < MT; ti++)
+			{
+				Pt.check_waitIJK(ti, tl, tl);	// Check for TSQRT_(ti,tl,tl)
+
+				// SSRFB
+				{
+					SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tl), T(ti,tl), A(tl,tk), A(ti,tk) );
+
+					#ifdef DEBUG
+					#pragma omp critical
+					cout << "SSRFB(" << ti << "," << tk << ") : " << omp_get_thread_num() << "\n";
+					#endif
+				}
+			} // End of i-loop
+		} // End of l-loop
+
+		if ( tk < MT )
+		{
+			// GEQRT
+			{
+				GEQRT( A(tk,tk), T(tk,tk) );
+
+				#ifdef DEBUG
+				#pragma omp critical
+				cout << "GEQRT(" << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
+				#endif
+			}
+
+			// Progress table update
+			Pt.setIJK(tk, tk, tk, DONE);
+				
+			for (int ti = tk+1; ti < MT; ti++)
+			{
+				// TSQRT
+				{
+					TSQRT( A(tk,tk), A(ti,tk), T(ti,tk) );
+
+					#ifdef DEBUG
+					#pragma omp critical
+					cout << "TSQRT(" << ti << "," << tk << ") : " << omp_get_thread_num() << "\n";
+					#endif
+				}
+
+				// Progress table update
+				Pt.setIJK(ti, tk, tk, DONE);
+					
+			} // End of i-loop
+		} // End if ( k < MT )
+	} // End of k-loop
+  // Left Looking tile QR END
+  ////////////////////////////////////////////////////////////////////////////
+}
