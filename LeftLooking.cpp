@@ -45,7 +45,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 				#ifdef DEBUG
 				#pragma omp critical
-				cout << "LARFB(" << tl << "," << tk << ") : " << omp_get_thread_num() << "\n";
+				cout << "LARFB(" << tl << "," << tk << "," << tl << ") : " << omp_get_thread_num() << "\n";
 				#endif
 			}
 
@@ -59,7 +59,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 					#ifdef DEBUG
 					#pragma omp critical
-					cout << "SSRFB(" << ti << "," << tk << ") : " << omp_get_thread_num() << "\n";
+					cout << "SSRFB(" << ti << "," << tk << "," << tl << ") : " << omp_get_thread_num() << "\n";
 					#endif
 				}
 			} // End of i-loop
@@ -73,7 +73,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 				#ifdef DEBUG
 				#pragma omp critical
-				cout << "GEQRT(" << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
+				cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
 				#endif
 			}
 
@@ -88,7 +88,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 					#ifdef DEBUG
 					#pragma omp critical
-					cout << "TSQRT(" << ti << "," << tk << ") : " << omp_get_thread_num() << "\n";
+					cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << "\n";
 					#endif
 				}
 

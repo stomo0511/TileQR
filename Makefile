@@ -71,4 +71,4 @@ RT:	$(RTOBJS)
 all:	RL RT LL SP DS
 
 clean:
-	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJ)
+	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS)
