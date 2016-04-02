@@ -6,14 +6,8 @@
 //
 
 #include <iostream>
+#include <algorithm>
 #include "Check_Accuracy.hpp"
-
-#ifndef __Test__Min__
-#define __Test__Min__
-
-#define min(a,b) (((a)<(b)) ? (a) : (b))
-
-#endif // __Test__Min__
 
 void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *mR )
 {
@@ -21,7 +15,7 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
   // Check Orthogonarity
 	
   // Set Id to the identity matrix
-  int mn = min(M,N);
+  int mn = std::min(M,N);
   double* Id = new double[ mn * mn ];
   for (int i=0; i<mn; i++)
     for (int j=0; j<mn; j++)

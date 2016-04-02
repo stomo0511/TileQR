@@ -7,14 +7,8 @@
 //
 
 #include <cassert>
+#include <algorithm>
 #include "Progress.hpp"
-
-#ifndef __Test__Min__
-#define __Test__Min__
-
-#define min(a,b) (((a)<(b)) ? (a) : (b))
-
-#endif // __Test__Min__
 
 using namespace std;
 

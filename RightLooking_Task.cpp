@@ -8,17 +8,11 @@
 #include <iostream>
 #include <cstdlib>
 #include <cassert>
+#include <algorithm>
 #include <omp.h>
 
 #include <CoreBlasTile.hpp>
 #include <TMatrix.hpp>
-
-#ifndef __Test__Min__
-#define __Test__Min__
-
-#define min(a,b) (((a)<(b)) ? (a) : (b))
-
-#endif // __Test__Min__
 
 using namespace std;
 

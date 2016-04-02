@@ -10,18 +10,12 @@
 #include <queue>
 #include <cstdlib>
 #include <cassert>
+#include <algorithm>
 #include <omp.h>
 
 #include "Progress.hpp"
 #include <CoreBlasTile.hpp>
 #include <TMatrix.hpp>
-
-#ifndef __Test__Min__
-#define __Test__Min__
-
-#define min(a,b) (((a)<(b)) ? (a) : (b))
-
-#endif // __Test__Min__
 
 void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 {
