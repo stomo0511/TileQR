@@ -27,9 +27,9 @@ COREBLAS_LIBS = -lCoreBlasTile
 #
 CXX =	/usr/local/bin/g++ -fopenmp
 # for DEBUG
-CXXFLAGS =	-DDEBUG -g -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
+#CXXFLAGS =	-DDEBUG -g -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
 # for Performance evaluation
-#CXXFLAGS =	-O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
+CXXFLAGS =	-O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
 
 LLOBJS =		TileQR.o Check_Accuracy.o Progress.o LeftLooking.o 
 SPOBJS =		TileQR.o Check_Accuracy.o Progress.o StaticPipeline.o

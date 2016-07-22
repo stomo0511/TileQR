@@ -56,7 +56,7 @@ int main(int argc, const char * argv[])
 
 	// Timer stop
 	time = omp_get_wtime() - time;
-	cout << M << ", " << N << time << endl;
+	cout << M << ", " << N << ", " << time << endl;
 
 	delete [] A;
 	delete [] tau;
