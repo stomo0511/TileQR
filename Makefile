@@ -1,19 +1,14 @@
 #
-BLAS_ROOT = /opt/OpenBLAS
+BLAS_ROOT = /opt/intel/compilers_and_libraries/mac/mkl
 BLAS_INC_DIR = $(BLAS_ROOT)/include
 BLAS_LIB_DIR = $(BLAS_ROOT)/lib
-BLAS_LIBS = -lopenblas
-SBLAS_LIBS = -lopenblas_seq
+SBLAS_LIBS = -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -liomp5 -lpthread -ldl -lm
+BLAS_LIBS = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -ldl -lm
 #
-LAPACK_ROOT = /opt/LAPACK_3.6.0
-LAPACK_INC_DIR = $(LAPACK_ROOT)/include
-LAPACK_LIB_DIR = $(LAPACK_ROOT)/lib
-LAPACK_LIBS = -llapacke -llapack
-#
-PLASMA_ROOT = /opt/PLASMA
+PLASMA_ROOT = /opt/plasma-17.1
 PLASMA_INC_DIR = $(PLASMA_ROOT)/include
 PLASMA_LIB_DIR = $(PLASMA_ROOT)/lib
-PLASMA_LIBS = -lplasma -lcoreblas -lquark 
+PLASMA_LIBS = -lcoreblas -lplasma
 #
 TMATRIX_ROOT = /Users/stomo/WorkSpace/TileAlgorithm/TileMatrix
 TMATRIX_INC_DIR = $(TMATRIX_ROOT)
@@ -40,8 +35,7 @@ QROBJS =		geqrf.o Check_Accuracy.o
 
 geqrf: $(QROBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(QROBJS) \
-				-L$(BLAS_LIB_DIR) $(BLAS_LIBS) \
-				-L$(LAPACK_LIB_DIR) $(LAPACK_LIBS)
+				-L$(BLAS_LIB_DIR) $(BLAS_LIBS) 
 
 LL:	$(LLOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(LLOBJS) \
