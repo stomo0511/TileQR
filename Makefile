@@ -2,7 +2,7 @@
 BLAS_ROOT = /opt/intel/compilers_and_libraries/mac/mkl
 BLAS_INC_DIR = $(BLAS_ROOT)/include
 BLAS_LIB_DIR = $(BLAS_ROOT)/lib
-SBLAS_LIBS = -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -liomp5 -lpthread -ldl -lm
+SBLAS_LIBS = -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -ldl -lm
 BLAS_LIBS = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -ldl -lm
 #
 PLASMA_ROOT = /opt/plasma-17.1
@@ -32,6 +32,8 @@ DSOBJS =		TileQR.o Check_Accuracy.o Progress.o DynamicSched.o
 RLOBJS =		TileQR.o Check_Accuracy.o RightLooking.o
 RTOBJS =		TileQR.o Check_Accuracy.o RightLooking_Task.o
 QROBJS =		geqrf.o Check_Accuracy.o
+
+all:	RL RT LL SP DS
 
 geqrf: $(QROBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(QROBJS) \
@@ -71,8 +73,6 @@ RT:	$(RTOBJS)
 				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
 				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
-
-all:	RL RT LL SP DS
 
 clean:
 	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS)
