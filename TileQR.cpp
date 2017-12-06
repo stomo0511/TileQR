@@ -10,10 +10,11 @@
 #include <cassert>
 #include <cstdlib>
 
-
 #include <CoreBlasTile.hpp>
 #include <TMatrix.hpp>
 #include "Check_Accuracy.hpp"
+
+#define DEBUG
 
 using namespace std;
 
@@ -26,7 +27,7 @@ int main(int argc, const char * argv[])
 		cerr << "Usage: a.out [M] [N] [NB] [IB]\n";
 		exit (1);
 	}
-	
+
 	const int M =  atoi(argv[1]);  // n. of rows of the matrix
 	const int N =  atoi(argv[2]);  // n. of columns of the matrix
 	const int NB = atoi(argv[3]);  // tile size
@@ -34,24 +35,24 @@ int main(int argc, const char * argv[])
 
 	assert( M >= N );
 	assert( NB >= IB );
-	
+
 	#ifdef DEBUG
 	cout << "M = " << M << ", N = " << N << ", NB = " << NB << ", IB = " << IB << endl;
 	cout << "clock precision = " << omp_get_wtick() << endl;
 	#endif
-	
+
 	//////////////////////////////////////////////////////////////////////
 	// Definitions and Initialize
 	TMatrix A(M,N,NB,NB,IB);
-	
+
 	const int MT = A.mt();
 	const int NT = A.nt();
-	
+
 	// refered in workspace.c of PLASMA
 	TMatrix T(MT*IB,NT*NB,IB,NB,IB);
-	
+
 	// Initialize matrix A
-	A.Set_Rnd( 20140105 );
+	A.Set_Rnd( 20170621 );
 
 	#ifdef DEBUG
 	// Copy the elements of TMatrix class A to double array mA
@@ -69,33 +70,33 @@ int main(int argc, const char * argv[])
 
   // Timer start
   double time = omp_get_wtime();
-	
+
   //////////////////////////////////////////////////////////////////////
   // tile QR variants
   tileQR(MT,NT,A,T);
   //////////////////////////////////////////////////////////////////////
-	
+
   // Timer stop
   time = omp_get_wtime() - time;
   cout << M << ", " << NB << ", " << IB << ", " << time << endl;
-	
+
   #ifdef DEBUG
   // char ofnameR[] = "R.dat";
   // A.File_Out(ofnameR,20);
-	
+
   // char ofnameT[] = "T.dat";
   // T.File_Out(ofnameT);
-	
+
   //////////////////////////////////////////////////////////////////////
   // Regenerate Q
   TMatrix Q(M,M,NB,NB,IB);
 
   // Set to the identity matrix
   Q.Set_Iden();
-	
+
   // Make Orthogonal matrix Q
   dorgqr( A, T, Q );
-	
+
   // char ofnameQ[] = "Q.dat";
   // Q.File_Out(ofnameQ,20);
   // Regenerate Q END
@@ -125,6 +126,6 @@ int main(int argc, const char * argv[])
 
   cout << "Done\n";
   #endif
-	
+
   return EXIT_SUCCESS;
 }

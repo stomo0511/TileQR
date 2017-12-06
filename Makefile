@@ -1,9 +1,20 @@
 #
-BLAS_ROOT = /opt/intel/compilers_and_libraries/mac/mkl
-BLAS_INC_DIR = $(BLAS_ROOT)/include
-BLAS_LIB_DIR = $(BLAS_ROOT)/lib
-SBLAS_LIBS = -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -ldl -lm
-BLAS_LIBS = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -ldl -lm
+UNAME = $(shell uname)
+ifeq ($(UNAME),Linux)
+  BLAS_ROOT = /opt/intel/compilers_and_libraries/linux/mkl
+  BLAS_INC_DIR = $(BLAS_ROOT)/include
+  BLAS_LIB_DIR = $(BLAS_ROOT)/lib/intel64
+  SBLAS_LIBS = -Wl,--start-group $(BLAS_LIB_DIR)/libmkl_intel_lp64.a $(BLAS_LIB_DIR)/libmkl_sequential.a $(BLAS_LIB_DIR)/libmkl_core.a -Wl,--end-group -lpthread -ldl -lm
+  CXX =	g++
+endif
+ifeq ($(UNAME),Darwin)
+  BLAS_ROOT = /opt/intel/compilers_and_libraries/mac/mkl
+  BLAS_INC_DIR = $(BLAS_ROOT)/include
+  BLAS_LIB_DIR = $(BLAS_ROOT)/lib
+  SBLAS_LIBS = $(BLAS_LIB_DIR)/libmkl_intel_lp64.a $(BLAS_LIB_DIR)/libmkl_sequential.a $(BLAS_LIB_DIR)/libmkl_core.a -lpthread -ldl -lm
+  CXX =	/usr/local/bin/g++ 
+endif
+
 #
 PLASMA_ROOT = /opt/plasma-17.1
 PLASMA_INC_DIR = $(PLASMA_ROOT)/include
@@ -20,12 +31,8 @@ COREBLAS_INC_DIR = $(COREBLAS_ROOT)
 COREBLAS_LIB_DIR = $(COREBLAS_ROOT)
 COREBLAS_LIBS = -lCoreBlasTile
 #
-CXX =	/usr/local/bin/g++ -fopenmp
-# for DEBUG
-#CXXFLAGS =	-DDEBUG -g -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
-# for Performance evaluation
-CXXFLAGS =	-O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
-
+CXXFLAGS =	-fopenmp -m64 -O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
+#
 LLOBJS =		TileQR.o Check_Accuracy.o Progress.o LeftLooking.o 
 SPOBJS =		TileQR.o Check_Accuracy.o Progress.o StaticPipeline.o
 DSOBJS =		TileQR.o Check_Accuracy.o Progress.o DynamicSched.o
@@ -33,7 +40,14 @@ RLOBJS =		TileQR.o Check_Accuracy.o RightLooking.o
 RTOBJS =		TileQR.o Check_Accuracy.o RightLooking_Task.o
 QROBJS =		geqrf.o Check_Accuracy.o
 
-all:	RL RT LL SP DS
+all:	RL RT DS SP LL geqrf
+
+RT:	$(RTOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(RTOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
 
 geqrf: $(QROBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(QROBJS) \
@@ -62,13 +76,6 @@ DS:	$(DSOBJS)
 
 RL:	$(RLOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RLOBJS) \
-				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
-				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
-				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
-				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
-
-RT:	$(RTOBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(RTOBJS) \
 				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
 				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
