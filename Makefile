@@ -39,8 +39,16 @@ DSOBJS =		TileQR.o Check_Accuracy.o Progress.o DynamicSched.o
 RLOBJS =		TileQR.o Check_Accuracy.o RightLooking.o
 RTOBJS =		TileQR.o Check_Accuracy.o RightLooking_Task.o
 QROBJS =		geqrf.o Check_Accuracy.o
+TDOBJS =		TileTRD.o RightLookingTRD.o
 
-all:	RL RT DS SP LL geqrf
+all:	TD RL RT DS SP LL geqrf
+
+TD:	$(TDOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(TDOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
 
 RT:	$(RTOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RTOBJS) \
@@ -82,4 +90,4 @@ RL:	$(RLOBJS)
 				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
 
 clean:
-	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS)
+	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS) $(TDOBJS)
