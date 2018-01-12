@@ -6,7 +6,7 @@
 //
 
 //#define COUT
-#define DEBUG
+//#define DEBUG
 
 #include <iostream>
 #include <cstdlib>

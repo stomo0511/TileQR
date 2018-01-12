@@ -79,12 +79,12 @@ int main(int argc, const char * argv[])
 
   // Timer stop
   time = omp_get_wtime() - time;
-//  cout << M << ", " << NB << ", " << IB << ", " << time << endl;
+  cout << M << ", " << NB << ", " << IB << ", " << time << endl;
 
 //	A.Show_all();
-	A(1,1)->Show_all();
-	A(2,2)->Show_all();
-	A(3,1)->Show_all();
+//	A(1,1)->Show_all();
+//	A(2,2)->Show_all();
+//	A(3,1)->Show_all();
 
   return EXIT_SUCCESS;
 }
