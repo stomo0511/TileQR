@@ -40,8 +40,16 @@ RLOBJS =		TileQR.o Check_Accuracy.o RightLooking.o
 RTOBJS =		TileQR.o Check_Accuracy.o RightLooking_Task.o
 QROBJS =		geqrf.o Check_Accuracy.o
 TDOBJS =		TileTRD.o RightLookingTRD.o
+TTOBJS =		TileTRD.o RightLookingTRD_Task.o
 
-all:	TD RL RT DS SP LL geqrf
+all: TT TD RL RT DS SP LL 
+
+TT:	$(TTOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(TTOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
 
 TD:	$(TDOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(TDOBJS) \
