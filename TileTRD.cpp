@@ -12,13 +12,12 @@
 
 #include <CoreBlasTile.hpp>
 #include <TMatrix.hpp>
-#include "Check_Accuracy.hpp"
-
-#define DEBUG
 
 using namespace std;
 
-void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T );
+#define DEBUG
+
+void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T );
 
 int main(int argc, const char * argv[])
 {
@@ -38,7 +37,6 @@ int main(int argc, const char * argv[])
 
 	#ifdef DEBUG
 	cout << "M = " << M << ", N = " << N << ", NB = " << NB << ", IB = " << IB << endl;
-	cout << "clock precision = " << omp_get_wtick() << endl;
 	#endif
 
 	//////////////////////////////////////////////////////////////////////
@@ -54,15 +52,18 @@ int main(int argc, const char * argv[])
 	// Initialize matrix A
 	A.Set_Rnd( 20170621 );
 
-	#ifdef DEBUG
-	// Copy the elements of TMatrix class A to double array mA
-	double *mA = new double [ M*N ];
-	A.Array_Copy(mA);
+//	for (int i=0; i<MT; i++)
+//		for (int j=0; j<NT; j++)
+//			A(i,j)->Show_all();
 
-	// char ofnameA[] = "A.dat";
-	// A.File_Out(ofnameA,20);
-	#endif
+	// Symmetrize
+	for (int i=0; i<MT; i++)
+		for (int j=i; j<NT; j++)
+			for (int ii=0; ii<A(i,j)->m(); ii++)
+				for (int jj=0; jj<A(i,j)->n(); jj++)
+					A(j,i)->Set_Val(jj,ii,A(i,j)->Get_Val(ii,jj));
 
+//	A.Show_all();
 	// Definitions and Initialize　END
 	//////////////////////////////////////////////////////////////////////
 
@@ -73,59 +74,17 @@ int main(int argc, const char * argv[])
 
   //////////////////////////////////////////////////////////////////////
   // tile QR variants
-  tileQR(MT,NT,A,T);
+  tileTRD(MT,NT,A,T);
   //////////////////////////////////////////////////////////////////////
 
   // Timer stop
   time = omp_get_wtime() - time;
   cout << M << ", " << NB << ", " << IB << ", " << time << endl;
 
-  #ifdef DEBUG
-  // char ofnameR[] = "R.dat";
-  // A.File_Out(ofnameR,20);
-
-  // char ofnameT[] = "T.dat";
-  // T.File_Out(ofnameT);
-
-  //////////////////////////////////////////////////////////////////////
-  // Regenerate Q
-  TMatrix Q(M,M,NB,NB,IB);
-
-  // Set to the identity matrix
-  Q.Set_Iden();
-
-  // Make Orthogonal matrix Q
-  dorgqr( A, T, Q );
-
-  // char ofnameQ[] = "Q.dat";
-  // Q.File_Out(ofnameQ,20);
-  // Regenerate Q END
-  //////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////
-  // Check Accuracy
-
-  double *mQ = new double [ M*M ];
-  double *mR = new double [ M*N ];
-
-  Q.Array_Copy(mQ);
-  A.Array_Copy(mR);
-
-  for (int i=0; i<M; i++)
-    for (int j=0; j<N; j++)
-      if (i > j)
-	mR[ i + M*j ] = 0.0;
-
-  Check_Accuracy(M,N,mA,mQ,mR );
-  // Check Accuracy END
-  //////////////////////////////////////////////////////////////////////
-
-  delete [] mA;
-  delete [] mQ;
-  delete [] mR;
-
-  cout << "Done\n";
-  #endif
+//	A.Show_all();
+	A(1,1)->Show_all();
+	A(2,2)->Show_all();
+	A(3,1)->Show_all();
 
   return EXIT_SUCCESS;
 }

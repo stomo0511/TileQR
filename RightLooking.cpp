@@ -5,6 +5,9 @@
 //  Copyright (c) 2013 T. Suzuki. All rights reserved.
 //
 
+//#define COUT
+#define DEBUG
+
 #include <iostream>
 #include <cstdlib>
 #include <cassert>
@@ -68,4 +71,15 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 			} // i-LOOP END
 		} // parallel section END
 	} // k-LOOP END
+
+#ifdef COUT
+			A(0,0)->Show_all();
+			if ( (MT>1) && (NT>1) )
+			{
+				A(0,1)->Show_all();
+				A(1,0)->Show_all();
+				A(1,1)->Show_all();
+			}
+#endif
+
 }

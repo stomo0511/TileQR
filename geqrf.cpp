@@ -13,7 +13,7 @@
 
 #include "Check_Accuracy.hpp"
 
-#include <lapacke.h>
+#include <mkl_lapacke.h>
 
 using namespace std;
 

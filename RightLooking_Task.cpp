@@ -5,6 +5,9 @@
  *      Author: stomo
  */
 
+//#define COUT
+#define DEBUG
+
 #include <iostream>
 #include <cstdlib>
 #include <cassert>
@@ -18,13 +21,12 @@ using namespace std;
 
 void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 {
-	//////////////////////////////////////////////////////////////////////
-	// List Item
+	// Progress table
 	int **Ap;
 
-	Ap = (int **)malloc(sizeof(int *) * MT);
+	Ap = (int **)malloc( sizeof(int*) * MT);
 	for (int i=0; i<MT; i++)
-		Ap[i] = (int *)malloc(sizeof(int) * NT);
+		Ap[i] = (int *)malloc( sizeof(int) * NT);
 
 	double ttime = omp_get_wtime();
 
@@ -36,25 +38,24 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 		{
 			for (int tk=0; tk < min(MT,NT); tk++ )
 			{
+				#pragma omp task depend(inout:Ap[tk][tk])
 				{
-					#pragma omp task depend(inout:Ap[tk][tk])
-					{
-						GEQRT( A(tk,tk), T(tk,tk) );
+					GEQRT( A(tk,tk), T(tk,tk) );
 
-						#ifdef DEBUG
-						#pragma omp critical
-						cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
-						#endif
-					}
+					#ifdef COUT
+					#pragma omp critical
+					cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+					#endif
 				}
 
 				for (int tj=tk+1; tj < NT; tj++)
 				{
-					#pragma omp task depend(in:Ap[tk][tk]) depend(inout:Ap[tk][tj])
+					#pragma omp task depend(in:Ap[tk][tk]) \
+									 depend(inout:Ap[tk][tj])
 					{
 						LARFB( PlasmaLeft, PlasmaTrans, A(tk,tk), T(tk,tk), A(tk,tj) );
 
-						#ifdef DEBUG
+						#ifdef COUT
 						#pragma omp critical
 						cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 						#endif
@@ -63,25 +64,25 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 				for (int ti=tk+1; ti < MT; ti++)
 				{
+					#pragma omp task depend(inout:Ap[tk][tk]) \
+									 depend(out:Ap[ti][tk])
 					{
-						#pragma omp task depend(inout:Ap[tk][tk]) depend(out:Ap[ti][tk])
-						{
-							TSQRT( A(tk,tk), A(ti,tk), T(ti,tk) );
+						TSQRT( A(tk,tk), A(ti,tk), T(ti,tk) );
 
-							#ifdef DEBUG
-							#pragma omp critical
-							cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
-							#endif
-						}
+						#ifdef COUT
+						#pragma omp critical
+						cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+						#endif
 					}
 
 					for (int tj=tk+1; tj < NT; tj++)
 					{
-						#pragma omp task depend(in:Ap[ti][tk]) depend(inout:Ap[tk][tj],Ap[ti][tj])
+						#pragma omp task depend(in:Ap[ti][tk]) \
+										 depend(inout:Ap[tk][tj], Ap[ti][tj])
 						{
 							SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), A(tk,tj), A(ti,tj) );
 
-							#ifdef DEBUG
+							#ifdef COUT
 							#pragma omp critical
 							cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
 							#endif
@@ -94,7 +95,4 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 	// Right Looking tile QR END
 	//////////////////////////////////////////////////////////////////////
 
-	for (int i=0; i<MT; i++)
-		free(Ap[i]);
-	free(Ap);
 }

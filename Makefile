@@ -1,19 +1,25 @@
 #
-BLAS_ROOT = /opt/OpenBLAS
-BLAS_INC_DIR = $(BLAS_ROOT)/include
-BLAS_LIB_DIR = $(BLAS_ROOT)/lib
-BLAS_LIBS = -lopenblas
-SBLAS_LIBS = -lopenblas_seq
+UNAME = $(shell uname)
+ifeq ($(UNAME),Linux)
+  BLAS_ROOT = /opt/intel/compilers_and_libraries/linux/mkl
+  BLAS_INC_DIR = $(BLAS_ROOT)/include
+  BLAS_LIB_DIR = $(BLAS_ROOT)/lib/intel64
+  SBLAS_LIBS = -Wl,--start-group $(BLAS_LIB_DIR)/libmkl_intel_lp64.a $(BLAS_LIB_DIR)/libmkl_sequential.a $(BLAS_LIB_DIR)/libmkl_core.a -Wl,--end-group -lpthread -ldl -lm
+  CXX =	g++
+endif
+ifeq ($(UNAME),Darwin)
+  BLAS_ROOT = /opt/intel/compilers_and_libraries/mac/mkl
+  BLAS_INC_DIR = $(BLAS_ROOT)/include
+  BLAS_LIB_DIR = $(BLAS_ROOT)/lib
+  SBLAS_LIBS = $(BLAS_LIB_DIR)/libmkl_intel_lp64.a $(BLAS_LIB_DIR)/libmkl_sequential.a $(BLAS_LIB_DIR)/libmkl_core.a -lpthread -ldl -lm
+  CXX =	/usr/local/bin/g++ 
+endif
+
 #
-LAPACK_ROOT = /opt/LAPACK_3.6.0
-LAPACK_INC_DIR = $(LAPACK_ROOT)/include
-LAPACK_LIB_DIR = $(LAPACK_ROOT)/lib
-LAPACK_LIBS = -llapacke -llapack
-#
-PLASMA_ROOT = /opt/PLASMA
+PLASMA_ROOT = /opt/plasma-17.1
 PLASMA_INC_DIR = $(PLASMA_ROOT)/include
 PLASMA_LIB_DIR = $(PLASMA_ROOT)/lib
-PLASMA_LIBS = -lplasma -lcoreblas -lquark 
+PLASMA_LIBS = -lcoreblas -lplasma
 #
 TMATRIX_ROOT = /Users/stomo/WorkSpace/TileAlgorithm/TileMatrix
 TMATRIX_INC_DIR = $(TMATRIX_ROOT)
@@ -25,49 +31,24 @@ COREBLAS_INC_DIR = $(COREBLAS_ROOT)
 COREBLAS_LIB_DIR = $(COREBLAS_ROOT)
 COREBLAS_LIBS = -lCoreBlasTile
 #
-CXX =	/usr/local/bin/g++ -fopenmp
-# for DEBUG
-#CXXFLAGS =	-DDEBUG -g -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
-# for Performance evaluation
-CXXFLAGS =	-O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
+CXXFLAGS =	-fopenmp -m64 -O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
+#
+RLOBJS =	 TileQR.o Check_Accuracy.o RightLooking.o
+LLOBJS =	 TileQR.o Check_Accuracy.o Progress.o LeftLooking.o 
+SPOBJS =	 TileQR.o Check_Accuracy.o Progress.o StaticPipeline.o
+DSOBJS =	 TileQR.o Check_Accuracy.o Progress.o DynamicSched.o
+RTOBJS =	 TileQR.o Check_Accuracy.o RightLooking_Task.o
+TDOBJS =	 TileTRD.o RightLookingTRD.o
+QROBJS =	 geqrf.o Check_Accuracy.o
 
-LLOBJS =		TileQR.o Check_Accuracy.o Progress.o LeftLooking.o 
-SPOBJS =		TileQR.o Check_Accuracy.o Progress.o StaticPipeline.o
-DSOBJS =		TileQR.o Check_Accuracy.o Progress.o DynamicSched.o
-RLOBJS =		TileQR.o Check_Accuracy.o RightLooking.o
-RTOBJS =		TileQR.o Check_Accuracy.o RightLooking_Task.o
-QROBJS =		geqrf.o Check_Accuracy.o
-
-all:	RL RT LL SP DS
+all:	RL RT DS SP LL TD
 
 geqrf: $(QROBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(QROBJS) \
-				-L$(BLAS_LIB_DIR) $(BLAS_LIBS) \
-				-L$(LAPACK_LIB_DIR) $(LAPACK_LIBS)
-
-LL:	$(LLOBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(LLOBJS) \
-				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
-				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
-				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
-				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
-
-SP:	$(SPOBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(SPOBJS) \
-				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
-				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
-				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
-				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
-
-DS:	$(DSOBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(DSOBJS) \
-				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
-				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
-				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
-				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
-
-RL:	$(RLOBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(RLOBJS) \
+				-L$(BLAS_LIB_DIR) $(BLAS_LIBS) 
+				
+TD:	$(TDOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(TDOBJS) \
 				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
 				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
@@ -80,5 +61,33 @@ RT:	$(RTOBJS)
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
 				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
 
+DS:	$(DSOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(DSOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
+
+SP:	$(SPOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(SPOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
+
+LL:	$(LLOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(LLOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
+				
+RL:	$(RLOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(RLOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
+
 clean:
-	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS) $(QROBJS)
+	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS) $(TDOBJS)
