@@ -15,7 +15,7 @@
 
 using namespace std;
 
-#define DEBUG
+//#define DEBUG
 
 void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T );
 
@@ -82,9 +82,9 @@ int main(int argc, const char * argv[])
   cout << M << ", " << NB << ", " << IB << ", " << time << endl;
 
 //	A.Show_all();
-	A(1,1)->Show_all();
-	A(2,2)->Show_all();
-	A(3,1)->Show_all();
+//	A(1,1)->Show_all();
+//	A(2,2)->Show_all();
+//	A(3,1)->Show_all();
 
   return EXIT_SUCCESS;
 }
