@@ -38,6 +38,8 @@ RLOBJS =		TileQR.o Check_Accuracy.o RightLooking.o
 RTOBJS =		TileQR.o Check_Accuracy.o RightLooking_Task.o
 QROBJS =		geqrf.o Check_Accuracy.o
 
+all:	RL RT LL SP DS
+
 geqrf: $(QROBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(QROBJS) \
 				-L$(BLAS_LIB_DIR) $(BLAS_LIBS) \
@@ -78,7 +80,5 @@ RT:	$(RTOBJS)
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
 				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
 
-all:	RL RT LL SP DS
-
 clean:
-	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS)
+	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS) $(QROBJS)
