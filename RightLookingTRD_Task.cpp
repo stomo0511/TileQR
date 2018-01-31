@@ -104,7 +104,7 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 				for (int tj=tk+1; tj < NT; tj++)
 				{
-					#pragma omp task depend(in:Ap[tk][tk+1], Tp[tk+1][tk]) \
+					#pragma omp task depend(in:Ap[tk+1][tk], Tp[tk+1][tk]) \
 					                 depend(inout:Ap[tj][tk+1])
 					{
 						LARFB( PlasmaRight, PlasmaNoTrans, A(tk+1,tk), T(tk+1,tk), A(tj,tk+1) );
