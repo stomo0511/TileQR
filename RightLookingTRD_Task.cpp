@@ -1,138 +1,154 @@
+//  RightLookingTRD_Task
 //
-//  RightLooking
-//
-//  Created by T. Suzuki on 2014/01/05.
+//  Created by T. Suzuki on 2018/01/30.
 //  Copyright (c) 2013 T. Suzuki. All rights reserved.
 //
 
 //#define COUT
-//#define DEBUG
 
 #include <iostream>
 #include <cstdlib>
 #include <cassert>
 #include <algorithm>
+#include <omp.h>
 
 #include <CoreBlasTile.hpp>
 #include <TMatrix.hpp>
-#include <BMatrix.hpp>
 
 using namespace std;
 
-void tileCopy( BMatrix* A, BMatrix& B )
-{
-	assert( A->m() == B.m() );
-	assert( A->m() == B.n() );
-	assert( A->ib() == B.ib() );
-
-	for (int i=0; i<A->m(); i++)
-		for (int j=0; j<A->n(); j++)
-			B.Set_Val(i,j,A->Get_Val(i,j));
-}
-
-void tileTransCopy( BMatrix* A, BMatrix& B )
-{
-	assert( A->m() == B.m() );
-	assert( A->m() == B.n() );
-	assert( A->ib() == B.ib() );
-
-	for (int i=0; i<A->m(); i++)
-		for (int j=0; j<A->n(); j++)
-			B.Set_Val(j,i,A->Get_Val(i,j));
-}
-
-void tileTransCopy( BMatrix A, BMatrix* B )
-{
-	assert( A.m() == B->m() );
-	assert( A.m() == B->n() );
-	assert( A.ib() == B->ib() );
-
-	for (int i=0; i<A.m(); i++)
-		for (int j=0; j<A.n(); j++)
-			B->Set_Val(j,i,A.Get_Val(i,j));
-}
-
 void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 {
-	const int NB = A(0,0)->m();
-	const int IB = A(0,0)->ib();
-	BMatrix tmp(NB,NB,IB), tmp1(NB,NB,IB);
+	// Progress table
+	int **Ap, **Tp;
 
-	for (int tk=0; tk < min(MT,NT)-1; tk++ )
+	Ap = (int **)malloc( sizeof(int*) * MT);
+	for (int i=0; i<MT; i++)
+		Ap[i] = (int *)malloc( sizeof(int) * NT);
+
+	Tp = (int **)malloc( sizeof(int*) * MT);
+	for (int i=0; i<MT; i++)
+		Tp[i] = (int *)malloc( sizeof(int) * NT);
+
+	double ttime = omp_get_wtime();
+
+	#pragma omp parallel firstprivate(ttime)
 	{
-		// (a)
-		GEQRT( A(tk+1,tk), T(tk+1,tk) );
-		#ifdef DEBUG
-		cout << "GEQRT(" << tk+1 << "," << tk << "," << tk << ")\n";
-		#endif
-
-		// (b)
-		LARFB( PlasmaLeft, PlasmaTrans,   A(tk+1,tk), T(tk+1,tk), A(tk+1,tk+1) );
-		#ifdef DEBUG
-		cout << "LARFB_L(" << tk+1 << "," << tk+1 << "," << tk << ")\n";
-		#endif
-
-		// (c)
-		for (int ti=tk+1; ti < NT; ti++)
+		#pragma omp single
 		{
-			LARFB( PlasmaRight, PlasmaNoTrans, A(tk+1,tk), T(tk+1,tk), A(ti,tk+1) );
-			#ifdef DEBUG
-			cout << "LARFB_R(" << ti << "," << tk+1 << "," << tk << ")\n";
-			#endif
-		} // i-LOOP END
-
-		//////////////////////////////////////////////////////////////
-		for (int ti=tk+2; ti < MT; ti++)
-		{
-			// (d)
-			TSQRT( A(tk+1,tk), A(ti,tk), T(ti,tk) );
-			#ifdef DEBUG
-			cout << "TSQRT( (" << tk+1 << "," << tk << "," << tk << "), (" << ti << "," << tk << "," << tk << ") )\n";
-			#endif
-
-			// (e) tj=tk+1
-			tileTransCopy(A(ti,tk+1),tmp1);  // tmp1 <- A(ti,tk+1)^T
-
-			SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), A(tk+1,tk+1), A(ti,tk+1) );
-			#ifdef DEBUG
-			cout << "SSRFB_L( (" << tk+1 << "," << tk+1 << "," << tk << "), (" << ti << "," << tk+1 << "," << tk << ") )\n";
-			#endif
-
-			// (f), (g)
-			for (int tj=tk+2; tj<ti; tj++)
+			for (int tk=0; tk < min(MT,NT)-1; tk++ )
 			{
-				tileTransCopy(A(tj,tk+1),tmp);
-				SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), &tmp, A(ti,tj) );
-				tileTransCopy(tmp,A(tj,tk+1));
-				#ifdef DEBUG
-				cout << "SSRFB_L( (" << tj << "," << tk+1 << "," << tk << ")^T, (" << ti << "," << tj << "," << tk << ") )\n";
-				#endif
-			}
+				//////////////////////////////////////////////////////////////
+				// Left
+				#pragma omp task depend(inout:Ap[tk+1][tk]) \
+								 depend(out:Tp[tk+1][tk])
+				{
+					GEQRT( A(tk+1,tk), T(tk+1,tk) );
+					#ifdef DEBUG
+					cout << "GEQRT_L(" << tk+1 << "," << tk << "," << tk << ")\n";
+					#endif
+				}
 
-			// (h)
-			SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), &tmp1, A(ti,ti) );
-			#ifdef DEBUG
-			cout << "SSRFB_L( T(" << tk+1 << "," << ti << "," << tk << "), (" << ti << "," << ti << "," << tk << ") )\n";
-			#endif
+				for  (int tj=tk+1; tj < NT; tj++)
+				{
+					#pragma omp task depend(in:Ap[tk+1][tk], Tp[tk+1][tk]) \
+					                 depend(inout:Ap[tk+1][tj])
+					{
+						LARFB( PlasmaLeft, PlasmaTrans,   A(tk+1,tk), T(tk+1,tk), A(tk+1,tj) );
+						#ifdef DEBUG
+						#pragma omp critical
+						cout << "LARFB_L(" << tk+1 << "," << tj << "," << tk << ")\n";
+						#endif
+					}
+				} // j-LOOP END
 
-			// (i)
-			SSRFB( PlasmaRight, PlasmaNoTrans, A(ti,tk), T(ti,tk), A(tk+1,tk+1), &tmp1 );
-			#ifdef DEBUG
-			cout << "SSRFB_R( (" << tk+1 << "," << tk+1 << "," << tk << "), T(" << tk+1 << "," << ti << "," << tk << ") )\n";
-			#endif
+				for (int ti=tk+2; ti < MT; ti++)
+				{
+					#pragma omp task depend(inout:Ap[tk+1][tk], Ap[ti][tk]) \
+					                 depend(out:Tp[ti][tk])
+					{
+						TSQRT( A(tk+1,tk), A(ti,tk), T(ti,tk) );
+						#ifdef DEBUG
+						cout << "TSQRT_L( A(" << tk+1 << "," << tk << "), A(" << ti << "," << tk << ") )\n";
+						#endif
+					}
 
-			// (k)
-			for (int tj=ti; tj < NT; tj++)
-			{
-				SSRFB( PlasmaRight, PlasmaNoTrans, A(ti,tk), T(ti,tk), A(tj,tk+1), A(tj,ti) );
-				#ifdef DEBUG
-				cout << "SSRFB_R( (" << tj << "," << tk+1 << "," << tk << "), (" << tj << "," << ti << "," << tk << ") )\n";
-				#endif
-			} // j-LOOP END
-		} // i-LOOP END
+					for (int tj=tk+1; tj < NT; tj++)
+					{
+						#pragma omp task depend(in:Ap[ti][tk], Tp[ti][tk]) \
+						                 depend(inout: Ap[tk+1][tj], Ap[ti][tj])
+						{
+							SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), A(tk+1,tj), A(ti,tj) );
+							#ifdef DEBUG
+							#pragma omp critical
+							cout << "SSRFB_L( A(" << tk+1 << "," << tj << "), A(" << ti << "," << tj << ") )\n";
+							#endif
+						}
+					} // j-LOOP END
+				} // i-LOOP END
 
-		#ifdef DEBUG
-		cout << endl;
-		#endif
-	} // k-LOOP END
+				//////////////////////////////////////////////////////////////
+				// Right
+				#pragma omp task depend(in:Ap[tk+1][tk])
+				{
+					// Copy A(tk+1,tk)^T to A(tk,tk+1)
+					for (int i=0; i<A(tk+1,tk)->m(); i++)
+						for (int j=0; j<A(tk+1,tk)->n(); j++) {
+							A(tk,tk+1)->Set_Val( j, i, A(tk+1,tk)->Get_Val(i,j) );
+						}
+					#ifdef DEBUG
+					cout << "GEQRT_R(" << tk << "," << tk+1 << "," << tk << ")\n";
+					#endif
+				}
+
+				for (int tj=tk+1; tj < NT; tj++)
+				{
+					#pragma omp task depend(in:Ap[tk+1][tk], Tp[tk+1][tk]) \
+					                 depend(inout:Ap[tj][tk+1])
+					{
+						LARFB( PlasmaRight, PlasmaNoTrans, A(tk+1,tk), T(tk+1,tk), A(tj,tk+1) );
+						#ifdef DEBUG
+						#pragma omp critical
+						cout << "LARFB_R(" << tj << "," << tk+1 << "," << tk << ")\n";
+						#endif
+					}
+				} // j-LOOP END
+
+				for (int ti=tk+2; ti < MT; ti++)
+				{
+					#pragma omp task depend(in:Ap[tk+1][tk], Ap[ti][tk])
+					{
+						// Copy A(tk+1,tk)^T to A(tk,tk+1)
+						for (int i=0; i<A(tk+1,tk)->m(); i++)
+							for (int j=0; j<A(tk+1,tk)->n(); j++) {
+								A(tk,tk+1)->Set_Val( j, i, A(tk+1,tk)->Get_Val(i,j) );
+							}
+
+						// Copy A(ti,tk)^T to A(tk,ti)
+						for (int i=0; i<A(ti,tk)->m(); i++)
+							for (int j=0; j<A(ti,tk)->n(); j++) {
+								A(tk,ti)->Set_Val( j, i, A(ti,tk)->Get_Val(i,j) );
+							}
+						#ifdef DEBUG
+						cout << "TSQRT_R(" << tk << "," << ti << "," << tk << ")\n";
+						#endif
+					}
+
+					for (int tj=tk+1; tj < NT; tj++)
+					{
+						#pragma omp task depend(in:Ap[ti][tk], Tp[ti][tk]) \
+						                 depend(inout: Ap[tj][tk+1], Ap[tj][ti])
+						{
+							SSRFB( PlasmaRight, PlasmaNoTrans, A(ti,tk), T(ti,tk), A(tj,tk+1), A(tj,ti) );
+							#ifdef DEBUG
+							#pragma omp critical
+							cout << "SSRFB_R( A(" << tj << "," << tk+1 << "), A(" << tj << "," << ti << ") )\n";
+							#endif
+						}
+					} // j-LOOP END
+				} // i-LOOP END
+
+			} // k-LOOP END
+		} // single section END
+	} // parallel section END
 }
