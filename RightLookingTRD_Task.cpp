@@ -6,6 +6,7 @@
 //
 
 //#define COUT
+#define ANIM
 
 #include <iostream>
 #include <cstdlib>
@@ -31,6 +32,10 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 	for (int i=0; i<MT; i++)
 		Tp[i] = (int *)malloc( sizeof(int) * NT);
 
+	#ifdef ANIM
+	cout << "Kernel, Ii, Ij, Ik, Time\n";
+	#endif
+
 	double ttime = omp_get_wtime();
 
 	#pragma omp parallel firstprivate(ttime)
@@ -45,8 +50,12 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 								 depend(out:Tp[tk+1][tk])
 				{
 					GEQRT( A(tk+1,tk), T(tk+1,tk) );
-					#ifdef DEBUG
+					#ifdef COUT
+					#pragma omp critical
 					cout << "GEQRT_L(" << tk+1 << "," << tk << "," << tk << ")\n";
+					#endif
+					#ifdef ANIM
+					cout << "GL, " << tk+1 << ", " << tk << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
 					#endif
 				}
 
@@ -56,9 +65,13 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					                 depend(inout:Ap[tk+1][tj])
 					{
 						LARFB( PlasmaLeft, PlasmaTrans,   A(tk+1,tk), T(tk+1,tk), A(tk+1,tj) );
-						#ifdef DEBUG
+						#ifdef COUT
 						#pragma omp critical
 						cout << "LARFB_L(" << tk+1 << "," << tj << "," << tk << ")\n";
+						#endif
+						#ifdef ANIM
+						#pragma omp critical
+						cout << "LL, " << tk+1 << ", " << tj << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
 						#endif
 					}
 				} // j-LOOP END
@@ -69,8 +82,13 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					                 depend(out:Tp[ti][tk])
 					{
 						TSQRT( A(tk+1,tk), A(ti,tk), T(ti,tk) );
-						#ifdef DEBUG
+						#ifdef COUT
+						#pragma omp critical
 						cout << "TSQRT_L( A(" << tk+1 << "," << tk << "), A(" << ti << "," << tk << ") )\n";
+						#endif
+						#ifdef ANIM
+						#pragma omp critical
+						cout << "TL, " << ti << ", " << tk << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
 						#endif
 					}
 
@@ -80,9 +98,13 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 						                 depend(inout: Ap[tk+1][tj], Ap[ti][tj])
 						{
 							SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), A(tk+1,tj), A(ti,tj) );
-							#ifdef DEBUG
+							#ifdef COUT
 							#pragma omp critical
 							cout << "SSRFB_L( A(" << tk+1 << "," << tj << "), A(" << ti << "," << tj << ") )\n";
+							#endif
+							#ifdef ANIM
+							#pragma omp critical
+							cout << "SL, " << ti << ", " << tj << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
 							#endif
 						}
 					} // j-LOOP END
@@ -97,8 +119,13 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 						for (int j=0; j<A(tk+1,tk)->n(); j++) {
 							A(tk,tk+1)->Set_Val( j, i, A(tk+1,tk)->Get_Val(i,j) );
 						}
-					#ifdef DEBUG
+					#ifdef COUT
+					#pragma omp critical
 					cout << "GEQRT_R(" << tk << "," << tk+1 << "," << tk << ")\n";
+					#endif
+					#ifdef ANIM
+					#pragma omp critical
+					cout << "GR, " << tk << ", " << tk+1 << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
 					#endif
 				}
 
@@ -108,9 +135,13 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					                 depend(inout:Ap[tj][tk+1])
 					{
 						LARFB( PlasmaRight, PlasmaNoTrans, A(tk+1,tk), T(tk+1,tk), A(tj,tk+1) );
-						#ifdef DEBUG
+						#ifdef COUT
 						#pragma omp critical
 						cout << "LARFB_R(" << tj << "," << tk+1 << "," << tk << ")\n";
+						#endif
+						#ifdef ANIM
+						#pragma omp critical
+						cout << "LR, " << tj << ", " << tk+1 << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
 						#endif
 					}
 				} // j-LOOP END
@@ -130,8 +161,13 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 							for (int j=0; j<A(ti,tk)->n(); j++) {
 								A(tk,ti)->Set_Val( j, i, A(ti,tk)->Get_Val(i,j) );
 							}
-						#ifdef DEBUG
+						#ifdef COUT
+						#pragma omp critical
 						cout << "TSQRT_R(" << tk << "," << ti << "," << tk << ")\n";
+						#endif
+						#ifdef ANIM
+						#pragma omp critical
+						cout << "TR, " << tk << ", " << ti << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
 						#endif
 					}
 
@@ -141,9 +177,13 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 						                 depend(inout: Ap[tj][tk+1], Ap[tj][ti])
 						{
 							SSRFB( PlasmaRight, PlasmaNoTrans, A(ti,tk), T(ti,tk), A(tj,tk+1), A(tj,ti) );
-							#ifdef DEBUG
+							#ifdef COUT
 							#pragma omp critical
 							cout << "SSRFB_R( A(" << tj << "," << tk+1 << "), A(" << tj << "," << ti << ") )\n";
+							#endif
+							#ifdef ANIM
+							#pragma omp critical
+							cout << "SR, " << tj << ", " << tk+1 << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
 							#endif
 						}
 					} // j-LOOP END
