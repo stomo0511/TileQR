@@ -14,7 +14,7 @@
 #include <TMatrix.hpp>
 #include "Check_Accuracy.hpp"
 
-#define DEBUG
+//#define DEBUG
 
 using namespace std;
 
