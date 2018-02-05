@@ -6,7 +6,7 @@
 //
 
 //#define COUT
-#define DEBUG
+#define ANIM
 
 #include <iostream>
 #include <cstdlib>
@@ -21,6 +21,10 @@ using namespace std;
 
 void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 {
+	#ifdef ANIM
+	cout << "Kernel,Ii,Ij,Ik,Time\n";
+	#endif
+
 	double ttime = omp_get_wtime();
 
 	for (int tk=0; tk < min(MT,NT); tk++ )
@@ -31,8 +35,11 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 			{
 				GEQRT( A(tk,tk), T(tk,tk) );
 
-				#ifdef DEBUG
+				#ifdef COUT
 				cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+				#endif
+				#ifdef ANIM
+				cout << "GL," << tk << "," << tk << "," << tk << "," << omp_get_wtime() - ttime << endl;
 				#endif
 			}
 
@@ -41,9 +48,13 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 			{
 				LARFB( PlasmaLeft, PlasmaTrans, A(tk,tk), T(tk,tk), A(tk,tj) );
 
-				#ifdef DEBUG
+				#ifdef COUT
 				#pragma omp critical
 				cout << "LARFB(" << tk << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+				#endif
+				#ifdef ANIM
+				#pragma omp critical
+				cout << "LL," << tk << "," << tj << "," << tk << "," << omp_get_wtime() - ttime << endl;
 				#endif
 			} // j-LOOP END
 
@@ -53,8 +64,12 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 				{
 					TSQRT( A(tk,tk), A(ti,tk), T(ti,tk) );
 
-					#ifdef DEBUG
+					#ifdef COUT
 					cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+					#endif
+					#ifdef ANIM
+					#pragma omp critical
+					cout << "TL," << ti << "," << tk << "," << tk << "," << omp_get_wtime() - ttime << endl;
 					#endif
 				}
 
@@ -63,23 +78,18 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 				{
 					SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), A(tk,tj), A(ti,tj) );
 
-					#ifdef DEBUG
+					#ifdef COUT
 					#pragma omp critical
 					cout << "SSRFB(" << ti << "," << tj << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+					#endif
+					#ifdef ANIM
+					#pragma omp critical
+					cout << "SL," << ti << "," << tj << "," << tk << "," << omp_get_wtime() - ttime << endl;
 					#endif
 				} // j-LOOP END
 			} // i-LOOP END
 		} // parallel section END
 	} // k-LOOP END
-
-#ifdef COUT
-			A(0,0)->Show_all();
-			if ( (MT>1) && (NT>1) )
-			{
-				A(0,1)->Show_all();
-				A(1,0)->Show_all();
-				A(1,1)->Show_all();
-			}
-#endif
-
+	// Right Looking tile QR END
+	//////////////////////////////////////////////////////////////////////
 }

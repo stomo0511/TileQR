@@ -22,7 +22,7 @@ using namespace std;
 void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 {
 	#ifdef ANIM
-	cout << "Kernel, Ii, Ij, Ik, Time\n";
+	cout << "Kernel,Ii,Ij,Ik,Time\n";
 	#endif
 
 	double ttime = omp_get_wtime();
@@ -41,7 +41,7 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 				cout << "GEQRT_L(" << tk+1 << "," << tk << "," << tk << ")\n";
 				#endif
 				#ifdef ANIM
-				cout << "GL, " << tk+1 << ", " << tk << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
+				cout << "GL," << tk+1 << "," << tk << "," << tk << "," << omp_get_wtime() - ttime << endl;
 				#endif
 			}
 
@@ -55,7 +55,7 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 				#endif
 				#ifdef ANIM
 				#pragma omp critical
-				cout << "LL, " << tk+1 << ", " << tj << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
+				cout << "LL," << tk+1 << "," << tj << "," << tk << "," << omp_get_wtime() - ttime << endl;
 				#endif
 			} // j-LOOP END
 
@@ -68,7 +68,7 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					cout << "TSQRT_L( A(" << tk+1 << "," << tk << "), A(" << ti << "," << tk << ") )\n";
 					#endif
 					#ifdef ANIM
-					cout << "TL, " << ti << ", " << tk << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
+					cout << "TL," << ti << "," << tk << "," << tk << "," << omp_get_wtime() - ttime << endl;
 					#endif
 				}
 
@@ -82,7 +82,7 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					#endif
 					#ifdef ANIM
 					#pragma omp critical
-					cout << "SL, " << ti << ", " << tj << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
+					cout << "SL," << ti << "," << tj << "," << tk << "," << omp_get_wtime() - ttime << endl;
 					#endif
 				} // j-LOOP END
 			} // i-LOOP END
@@ -101,7 +101,7 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 				cout << "GEQRT_R(" << tk << "," << tk+1 << "," << tk << ")\n";
 				#endif
 				#ifdef ANIM
-				cout << "GR, " << tk << ", " << tk+1 << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
+				cout << "GR," << tk << "," << tk+1 << "," << tk << "," << omp_get_wtime() - ttime << endl;
 				#endif
 			}
 
@@ -115,7 +115,7 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 				#endif
 				#ifdef ANIM
 				#pragma omp critical
-				cout << "LR, " << tj << ", " << tk+1 << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
+				cout << "LR," << tj << "," << tk+1 << "," << tk << "," << omp_get_wtime() - ttime << endl;
 				#endif
 			} // j-LOOP END
 
@@ -138,7 +138,7 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					cout << "TSQRT_R(" << tk << "," << ti << "," << tk << ")\n";
 					#endif
 					#ifdef ANIM
-					cout << "TR, " << tk << ", " << ti << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
+					cout << "TR," << tk << "," << ti << "," << tk << "," << omp_get_wtime() - ttime << endl;
 					#endif
 				}
 
@@ -152,7 +152,7 @@ void tileTRD( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					#endif
 					#ifdef ANIM
 					#pragma omp critical
-					cout << "SR, " << tj << ", " << tk+1 << ", " << tk << ", " << omp_get_wtime() - ttime << endl;
+					cout << "SR," << tj << "," << ti << "," << tk << "," << omp_get_wtime() - ttime << endl;
 					#endif
 				} // j-LOOP END
 			} // i-LOOP END
