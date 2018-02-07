@@ -6,7 +6,7 @@
  */
 
 //#define COUT
-#define ANIM
+//#define ANIM
 
 #include <iostream>
 #include <cstdlib>
