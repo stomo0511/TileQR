@@ -43,9 +43,24 @@ RTOBJS =		TileQR.o Check_Accuracy.o RightLooking_Task.o
 QROBJS =		geqrf.o Check_Accuracy.o
 TDOBJS =		TileTRD.o TRD.o
 TTOBJS =		TileTRD.o TRD_Task.o
+SDOBJS =		TileTRD.o TRD_Sym.o
+STOBJS =		TileTRD.o TRD_Sym_Task.o
 
+all: ST SD TT TD RL RT DS SP LL 
 
-all: TT TD RL RT DS SP LL 
+ST:	$(TTOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(STOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
+
+SD:	$(TDOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(SDOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
 
 TT:	$(TTOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(TTOBJS) \
@@ -54,10 +69,6 @@ TT:	$(TTOBJS)
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
 				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
 
-geqrf: $(QROBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(QROBJS) \
-				-L$(BLAS_LIB_DIR) $(BLAS_LIBS) 
-				
 TD:	$(TDOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(TDOBJS) \
 				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
@@ -99,6 +110,10 @@ RL:	$(RLOBJS)
 				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
 				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
+
+geqrf: $(QROBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(QROBJS) \
+				-L$(BLAS_LIB_DIR) $(BLAS_LIBS) 
 
 clean:
 	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS) $(TDOBJS) $(TTOBJS) TT TD RL RT DS SP LL
