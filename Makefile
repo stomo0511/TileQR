@@ -5,6 +5,8 @@ ifeq ($(UNAME),Linux)
   BLAS_INC_DIR = $(BLAS_ROOT)/include
   BLAS_LIB_DIR = $(BLAS_ROOT)/lib/intel64
   SBLAS_LIBS = -Wl,--start-group $(BLAS_LIB_DIR)/libmkl_intel_lp64.a $(BLAS_LIB_DIR)/libmkl_sequential.a $(BLAS_LIB_DIR)/libmkl_core.a -Wl,--end-group -lpthread -ldl -lm
+  TMATRIX_ROOT = /home/stomo/cuda-workspace/Remote/TileMatrix
+  COREBLAS_ROOT = /home/stomo/cuda-workspace/Remote/CoreBlas
   CXX =	g++
 endif
 ifeq ($(UNAME),Darwin)
@@ -12,6 +14,8 @@ ifeq ($(UNAME),Darwin)
   BLAS_INC_DIR = $(BLAS_ROOT)/include
   BLAS_LIB_DIR = $(BLAS_ROOT)/lib
   SBLAS_LIBS = $(BLAS_LIB_DIR)/libmkl_intel_lp64.a $(BLAS_LIB_DIR)/libmkl_sequential.a $(BLAS_LIB_DIR)/libmkl_core.a -lpthread -ldl -lm
+  TMATRIX_ROOT = /Users/stomo/WorkSpace/TileAlgorithm/TileMatrix
+  COREBLAS_ROOT = /Users/stomo/WorkSpace/TileAlgorithm/CoreBlas
   CXX =	/usr/local/bin/g++ 
 endif
 
@@ -21,12 +25,10 @@ PLASMA_INC_DIR = $(PLASMA_ROOT)/include
 PLASMA_LIB_DIR = $(PLASMA_ROOT)/lib
 PLASMA_LIBS = -lcoreblas -lplasma
 #
-TMATRIX_ROOT = /Users/stomo/WorkSpace/TileAlgorithm/TileMatrix
 TMATRIX_INC_DIR = $(TMATRIX_ROOT)
 TMATRIX_LIB_DIR = $(TMATRIX_ROOT)
 TMATRIX_LIBS = -lTileMatrix
 #
-COREBLAS_ROOT = /Users/stomo/WorkSpace/TileAlgorithm/CoreBlas
 COREBLAS_INC_DIR = $(COREBLAS_ROOT)
 COREBLAS_LIB_DIR = $(COREBLAS_ROOT)
 COREBLAS_LIBS = -lCoreBlasTile
