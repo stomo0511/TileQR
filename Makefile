@@ -36,13 +36,14 @@ COREBLAS_LIBS = -lCoreBlasTile
 CXXFLAGS =	-fopenmp -m64 -O2 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR) -I$(TMATRIX_INC_DIR) -I$(COREBLAS_INC_DIR)
 #
 LLOBJS =		TileQR.o Check_Accuracy.o Progress.o LeftLooking.o 
+LTOBJS =		TileQR.o Check_Accuracy.o LeftLooking_Task.o 
 SPOBJS =		TileQR.o Check_Accuracy.o Progress.o StaticPipeline.o
 DSOBJS =		TileQR.o Check_Accuracy.o Progress.o DynamicSched.o
 RLOBJS =		TileQR.o Check_Accuracy.o RightLooking.o
 RTOBJS =		TileQR.o Check_Accuracy.o RightLooking_Task.o
 QROBJS =		geqrf.o Check_Accuracy.o
 
-all: RL RT DS SP LL 
+all: RL RT DS SP LL LT
 
 RT:	$(RTOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(RTOBJS) \
@@ -51,6 +52,13 @@ RT:	$(RTOBJS)
 				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
 				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
 
+LT:	$(LTOBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(LTOBJS) \
+				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
+				-L$(COREBLAS_LIB_DIR) $(COREBLAS_LIBS) \
+				-L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) \
+				-L$(BLAS_LIB_DIR) $(SBLAS_LIBS)
+				
 DS:	$(DSOBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(DSOBJS) \
 				-L$(TMATRIX_LIB_DIR) $(TMATRIX_LIBS) \
