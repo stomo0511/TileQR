@@ -43,7 +43,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 				#endif
 			}
 
-			#pragma omp for
+#pragma omp for
 			for (int tj=tk+1; tj < NT; tj++)
 			{
 				LARFB( PlasmaLeft, PlasmaTrans, A(tk,tk), T(tk,tk), A(tk,tj) );
@@ -73,7 +73,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					#endif
 				}
 
-				#pragma omp for
+#pragma omp for
 				for (int tj=tk+1; tj < NT; tj++)
 				{
 					SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), A(tk,tj), A(ti,tj) );

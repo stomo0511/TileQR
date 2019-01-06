@@ -68,6 +68,8 @@ int main(int argc, const char * argv[])
 
   ////////////////////////////////////////////////////////////////////////////
 
+  omp_set_num_threads(8);
+	
   // Timer start
   double time = omp_get_wtime();
 

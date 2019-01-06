@@ -5,9 +5,9 @@ ifeq ($(UNAME),Linux)
   BLAS_INC_DIR = $(BLAS_ROOT)/include
   BLAS_LIB_DIR = $(BLAS_ROOT)/lib/intel64
   SBLAS_LIBS = -Wl,--start-group $(BLAS_LIB_DIR)/libmkl_intel_lp64.a $(BLAS_LIB_DIR)/libmkl_sequential.a $(BLAS_LIB_DIR)/libmkl_core.a -Wl,--end-group -lpthread -ldl -lm
-  TMATRIX_ROOT = /home/stomo/cuda-workspace/Remote/TileMatrix
-  COREBLAS_ROOT = /home/stomo/cuda-workspace/Remote/CoreBlas
-  CXX =	g++
+  TMATRIX_ROOT = /home/stomo/WorkSpace/TileMatrix
+  COREBLAS_ROOT = /home/stomo/WorkSpace/CoreBlas
+  CXX =	eztrace_cc g++
 endif
 ifeq ($(UNAME),Darwin)
   BLAS_ROOT = /opt/intel/compilers_and_libraries/mac/mkl
@@ -92,4 +92,4 @@ geqrf: $(QROBJS)
 				-L$(BLAS_LIB_DIR) $(BLAS_LIBS) 
 
 clean:
-	rm -f $(RTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS) RL RT DS SP LL
+	rm -f $(RTOBJS) $(LTOBJS) $(RLOBJS) $(LLOBJS) $(SPOBJS) $(DSOBJS) RL RT DS SP LL LT
