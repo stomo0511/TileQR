@@ -61,7 +61,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					#endif
 					#ifdef TRAC
 					#pragma omp critical
-					cout << omp_get_thread_num() << ", 0, " << start_t - ttime << ", " << omp_get_wtime() - ttime << " (" << tk << "," << tk << "," << tk << ")\n";
+					cout << omp_get_thread_num() << ", 0, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << tk << "," << tk << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
 					#endif
 					#ifdef ANIM
 					cout << "GL," << tk << "," << tk << "," << tk << "," << omp_get_wtime() - ttime << endl;
@@ -85,7 +85,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 						#endif
 						#ifdef TRAC
 						#pragma omp critical
-						cout << omp_get_thread_num() << ", 2, " << start_t - ttime << ", " << omp_get_wtime() - ttime << " (" << tk << "," << tj << "," << tk << ")\n";
+						cout << omp_get_thread_num() << ", 2, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << tk << "," << tj << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
 						#endif
 						#ifdef ANIM
 						#pragma omp critical
@@ -111,7 +111,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 						#endif
 						#ifdef TRAC
 						#pragma omp critical
-						cout << omp_get_thread_num() << ", 1, " << start_t - ttime << ", " << omp_get_wtime() - ttime << " (" << ti << "," << tk << "," << tk << ")\n";
+						cout << omp_get_thread_num() << ", 1, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << ti << "," << tk << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
 						#endif
 						#ifdef ANIM
 						#pragma omp critical
@@ -136,7 +136,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 							#endif
 							#ifdef TRAC
 							#pragma omp critical
-							cout << omp_get_thread_num() << ", 3, " << start_t - ttime << ", " << omp_get_wtime() - ttime << " (" << ti << "," << tj << "," << tk << ")\n";
+							cout << omp_get_thread_num() << ", 3, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << ti << "," << tj << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
 							#endif
 							#ifdef ANIM
 							#pragma omp critical
