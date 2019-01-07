@@ -56,7 +56,7 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 				#endif
 			}
 
-#pragma omp for
+			#pragma omp for
 			for (int tj=tk+1; tj < NT; tj++)
 			{
 				#ifdef TRAC
