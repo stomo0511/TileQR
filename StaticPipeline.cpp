@@ -5,6 +5,8 @@
 //  Copyright (c) 2013 T. Suzuki. All rights reserved.
 //
 
+#define TRAC
+
 #include <iostream>
 #include <cstdlib>
 #include <cassert>
@@ -30,6 +32,10 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 	{
 		int tk = 0;
 		int tj = omp_get_thread_num();
+
+		#ifdef TRAC
+		double start_t;
+		#endif
 
 		while (tj >= NT)
 		{
@@ -66,7 +72,18 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					if (tk != 0)
 						Pt.check_waitIJK( tk, tk, tk-1 );	// Check for SSRFB_(tk,tk,tk-1)
 
-					GEQRT( A(tk,tk), T(tk,tk) );
+					{
+						#ifdef TRAC
+						start_t = omp_get_wtime();
+						#endif
+
+						GEQRT( A(tk,tk), T(tk,tk) );
+
+						#ifdef TRAC
+						#pragma omp critical
+						cout << omp_get_thread_num() << ", 0, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << tk << "," << tk << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
+						#endif
+					}
 
 					#ifdef DEBUG
 					#pragma omp critical
@@ -80,7 +97,18 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					if (tk != 0)
 						Pt.check_waitIJK( ti, tk, tk-1 );	// Check for SSRFB_(ti,tk,tk-1)
 					
-					TSQRT( A(tk,tk), A(ti,tk), T(ti,tk) );
+					{
+						#ifdef TRAC
+						start_t = omp_get_wtime();
+						#endif
+
+						TSQRT( A(tk,tk), A(ti,tk), T(ti,tk) );
+
+						#ifdef TRAC
+						#pragma omp critical
+						cout << omp_get_thread_num() << ", 1, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << ti << "," << tk << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
+						#endif
+					}
 					
 					#ifdef DEBUG
 					#pragma omp critical
@@ -99,7 +127,18 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					if (tk != 0)
 						Pt.check_waitIJK( tk, tj, tk-1 );	// Check for SSRFB_(tk,tj,tk-1)
 					
-					LARFB( PlasmaLeft, PlasmaTrans, A(tk,tk), T(tk,tk), A(tk,tj) );
+					{
+						#ifdef TRAC
+						start_t = omp_get_wtime();
+						#endif
+
+						LARFB( PlasmaLeft, PlasmaTrans, A(tk,tk), T(tk,tk), A(tk,tj) );
+
+						#ifdef TRAC
+						#pragma omp critical
+						cout << omp_get_thread_num() << ", 2, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << tk << "," << tj << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
+						#endif
+					}
 
 					#ifdef DEBUG
 					#pragma omp critical
@@ -114,7 +153,18 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 					if (tk != 0)
 						Pt.check_waitIJK( ti, tj, tk-1 );	// Check for SSRFB_(ti,tj,tk-1)
 
-					SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), A(tk,tj), A(ti,tj) );
+					{
+						#ifdef TRAC
+						start_t = omp_get_wtime();
+						#endif
+
+						SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), A(tk,tj), A(ti,tj) );
+
+						#ifdef TRAC
+						#pragma omp critical
+						cout << omp_get_thread_num() << ", 3, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << ti << "," << tj << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
+						#endif
+					}
 
 					#ifdef DEBUG
 					#pragma omp critical

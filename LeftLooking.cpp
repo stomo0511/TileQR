@@ -5,6 +5,8 @@
 //  Copyright (c) 2013 T. Suzuki. All rights reserved.
 //
 
+#define TRAC
+
 #include <iostream>
 #include <cstdlib>
 #include <cassert>
@@ -29,6 +31,9 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 	#pragma omp parallel for schedule(static,1) firstprivate(ttime)
 	for (int tk = 0; tk < NT; tk++)
 	{
+		#ifdef TRAC
+		double start_t;
+		#endif
 			
 		for (int tl = 0; tl < min(MT,tk); tl++)
 		{
@@ -37,11 +42,19 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 			// LARFB
 			{
+				#ifdef TRAC
+				start_t = omp_get_wtime();
+				#endif
+
 				LARFB( PlasmaLeft, PlasmaTrans, A(tl,tl), T(tl,tl), A(tl,tk) );
 
 				#ifdef DEBUG
 				#pragma omp critical
 				cout << "LARFB(" << tl << "," << tk << "," << tl << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+				#endif
+				#ifdef TRAC
+				#pragma omp critical
+				cout << omp_get_thread_num() << ", 2, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << tl << "," << tk << "," << tl << "), " << omp_get_wtime() - start_t << "\n";
 				#endif
 			}
 
@@ -51,11 +64,19 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 
 				// SSRFB
 				{
+					#ifdef TRAC
+					start_t = omp_get_wtime();
+					#endif
+
 					SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tl), T(ti,tl), A(tl,tk), A(ti,tk) );
 
 					#ifdef DEBUG
 					#pragma omp critical
 					cout << "SSRFB(" << ti << "," << tk << "," << tl << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+					#endif
+					#ifdef TRAC
+					#pragma omp critical
+					cout << omp_get_thread_num() << ", 3, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << ti << "," << tk << "," << tl << "), " << omp_get_wtime() - start_t << "\n";
 					#endif
 				}
 			} // End of i-loop
@@ -65,11 +86,19 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 		{
 			// GEQRT
 			{
+				#ifdef TRAC
+				start_t = omp_get_wtime();
+				#endif
+
 				GEQRT( A(tk,tk), T(tk,tk) );
 
 				#ifdef DEBUG
 				#pragma omp critical
 				cout << "GEQRT(" << tk << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+				#endif
+				#ifdef TRAC
+				#pragma omp critical
+				cout << omp_get_thread_num() << ", 0, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << tk << "," << tk << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
 				#endif
 			}
 
@@ -80,11 +109,19 @@ void tileQR( const int MT, const int NT, TMatrix& A, TMatrix& T )
 			{
 				// TSQRT
 				{
+					#ifdef TRAC
+					start_t = omp_get_wtime();
+					#endif
+
 					TSQRT( A(tk,tk), A(ti,tk), T(ti,tk) );
 
 					#ifdef DEBUG
 					#pragma omp critical
 					cout << "TSQRT(" << ti << "," << tk << "," << tk << ") : " << omp_get_thread_num() << " : " << omp_get_wtime() - ttime << "\n";
+					#endif
+					#ifdef TRAC
+					#pragma omp critical
+					cout << omp_get_thread_num() << ", 1, " << start_t - ttime << ", " << omp_get_wtime() - ttime << ", (" << ti << "," << tk << "," << tk << "), " << omp_get_wtime() - start_t << "\n";
 					#endif
 				}
 
