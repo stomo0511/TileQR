@@ -1,24 +1,13 @@
 //
 //  RightLooking Task Version
 //
-//  Created by T. Suzuki on 2014/01/05.
+//  Created by T. Suzuki on 2022/12/21.
 //  Copyright (c) 2013 T. Suzuki. All rights reserved.
 //
 
 #include "CoreBlas.h"
 #include <cstdlib>
 #include <omp.h>
-
-#ifndef __Test__Min__
-#define __Test__Min__
-
-#define min(a,b) (((a)<(b)) ? (a) : (b))
-
-#endif // __Test__Min__
-
-#ifdef VTRACE
-#include <vt_user.h>
-#endif
 
 using namespace std;
 
@@ -41,10 +30,6 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
           for (int tk=0; tk < min(MT,NT); tk++ )
           {
               {
-                  #ifdef VTRACE
-                  VT_TRACER("GEQRT");
-                  #endif
-
                   #pragma omp task depend(inout:Ap[tk][tk])
                   {
                       GEQRT( A(tk,tk), T(tk,tk) );
@@ -60,10 +45,6 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
 		
               for (int tj=tk+1; tj < NT; tj++)
               {
-                  #ifdef VTRACE
-                  VT_TRACER("LARFB");
-                  #endif
-
                   #pragma omp task depend(in:Ap[tk][tk]) depend(inout:Ap[tk][tj])
                   {
                       LARFB( PlasmaLeft, PlasmaTrans, A(tk,tk), T(tk,tk), A(tk,tj) );
@@ -80,10 +61,6 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
               for (int ti=tk+1; ti < MT; ti++)
               {
                   {
-                      #ifdef VTRACE
-                      VT_TRACER("TSQRT");
-                      #endif
-
                       #pragma omp task depend(inout:Ap[tk][tk]) depend(out:Ap[ti][tk])
                       {
                           TSQRT( A(tk,tk), A(ti,tk), T(ti,tk) );
@@ -99,10 +76,6 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
 			
                   for (int tj=tk+1; tj < NT; tj++)
                   {
-                      #ifdef VTRACE
-                      VT_TRACER("SSRFB");
-                      #endif
-
                       #pragma omp task depend(in:Ap[ti][tk]) depend(inout:Ap[tk][tj],Ap[ti][tj])
                       {
                           SSRFB( PlasmaLeft, PlasmaTrans, A(ti,tk), T(ti,tk), A(tk,tj), A(ti,tj) );
