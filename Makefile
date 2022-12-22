@@ -18,7 +18,7 @@ ifeq ($(UNAME),Linux)
 		PLASMA_LIBS = -lcoreblas
 
 		CXX = g++-8
-		CXXFLAGS = -DMKL -I$(MKL_INC_DIR) -I$(PLASMA_INC_DIR) -fopenmp -g
+		CXXFLAGS = -DMKL -I$(MKL_INC_DIR) -I$(PLASMA_INC_DIR) -fopenmp
 		BLAS_LIBS = -L$(MKL_LIB_DIR) $(MKL_LIBS) -L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) -lpthread -lm -ldl
 	endif
 endif
@@ -54,7 +54,7 @@ CXXFLAGS += -O3
 all: RT
 
 RT : $(RT_OBJS)
-	$(CXX) $(CFLAGS) -o $@ $(RT_OBJS) -L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) -L$(BLAS_LIB_DIR) $(BLAS_LIBS) -lgomp
+	$(CXX) $(CFLAGS) -o $@ $(RT_OBJS) $(PLASMA_LIBS) $(BLAS_LIBS) -lgomp
 
 .cpp.o :
 	$(CXX) $(CXXFLAGS) -c $<
