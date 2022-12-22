@@ -40,9 +40,12 @@ ifeq ($(UNAME),Darwin)
 endif
 
 # for Debug
-CXXFLAGS += -DDEBUG -g
+#CXXFLAGS += -DDEBUG -g
 
-RT_OBJS = SuperM.o Matrix.o Tile.o TMatrix.o CoreBlas.o Check_Accuracy.o TileQR.o Right_Looking_Task.o
+# for Trace
+CXXFLAGS += -DTRACE
+
+RT_OBJS = SuperM.o Matrix.o Tile.o TMatrix.o CoreBlas.o Check_Accuracy.o TileQR.o Right_Looking_Task.o trace.o
 
 all: RT
 

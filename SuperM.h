@@ -1,8 +1,7 @@
 //
 //  SuperM.h
 //
-//  Created by T. Suzuki on 2013/07/12.
-//  Copyright (c) 2013 T. Suzuki. All rights reserved.
+//  Created by T. Suzuki on 2022/12/22.
 //
 
 #ifndef __Tile__SuperM__

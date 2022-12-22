@@ -178,8 +178,6 @@ void SuperM<_Tp>::File_Out( const char* fname )
 	matf.close();
 }
 
-
-
 /**
  * Save matrix elements to the file
  *
