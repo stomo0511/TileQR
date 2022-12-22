@@ -19,14 +19,6 @@ extern void trace_label(const char *color, const char *label);
 void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Tile<double> >& T )
 {
     //////////////////////////////////////////////////////////////////////
-    // Progress Table
-    int **Ap;
-
-    Ap = (int **)malloc(sizeof(int *) * MT);
-    for (int i=0; i<MT; i++)
-        Ap[i] = (int *)malloc(sizeof(int) * NT);
-    
-    //////////////////////////////////////////////////////////////////////
     // Right Looking tile QR Task version
     #pragma omp parallel
     {
@@ -35,7 +27,7 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
             for (int tk=0; tk < min(MT,NT); tk++ )
             {
                 {
-                    #pragma omp task depend(inout:Ap[tk][tk])
+                    #pragma omp task depend(inout:*A(tk,tk)) depend(out:*T(tk,tk))
                     {
                         #ifdef TRACE
 					    trace_cpu_start();
@@ -59,7 +51,7 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
             
                 for (int tj=tk+1; tj < NT; tj++)
                 {
-                    #pragma omp task depend(in:Ap[tk][tk]) depend(inout:Ap[tk][tj])
+                    #pragma omp task depend(in:*A(tk,tk), *T(tk,tk)) depend(inout:*A(tk,tj))
                     {
                         #ifdef TRACE
 						trace_cpu_start();
@@ -84,7 +76,7 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
                 for (int ti=tk+1; ti < MT; ti++)
                 {
                     {
-                        #pragma omp task depend(inout:Ap[tk][tk]) depend(out:Ap[ti][tk])
+                        #pragma omp task depend(inout:*A(tk,tk), *A(ti,tk)) depend(out:*T(ti,tk))
                         {
                             #ifdef TRACE
 							trace_cpu_start();
@@ -108,7 +100,7 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
                 
                     for (int tj=tk+1; tj < NT; tj++)
                     {
-                        #pragma omp task depend(in:Ap[ti][tk]) depend(inout:Ap[tk][tj],Ap[ti][tj])
+                        #pragma omp task depend(in:*A(ti,tk), *T(ti,tk)) depend(inout:*A(tk,tj), *A(ti,tj))
                         {
                             #ifdef TRACE
 							trace_cpu_start();
@@ -135,8 +127,4 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
     }
     // Right Looking tile QR END
     //////////////////////////////////////////////////////////////////////
-        
-    for (int i=0; i<MT; i++)
-        free(Ap[i]);
-    free(Ap);
 }

@@ -36,16 +36,20 @@ ifeq ($(UNAME),Darwin)
 
 	CXX = g++-12
 	CC = gcc-12
-	CXXFLAGS = -fopenmp -O3 -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
+	CXXFLAGS = -fopenmp -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
 endif
 
+RT_OBJS = SuperM.o Matrix.o Tile.o TMatrix.o CoreBlas.o Check_Accuracy.o TileQR.o Right_Looking_Task.o
+
+# for Performance evaluation
+CXXFLAGS += -O3
+
 # for Debug
-#CXXFLAGS += -DDEBUG -g
+# CXXFLAGS += -DDEBUG -g
 
 # for Trace
-CXXFLAGS += -DTRACE
-
-RT_OBJS = SuperM.o Matrix.o Tile.o TMatrix.o CoreBlas.o Check_Accuracy.o TileQR.o Right_Looking_Task.o trace.o
+# CXXFLAGS += -DTRACE
+# RT_OBJS += trace.o
 
 all: RT
 
@@ -59,4 +63,4 @@ trace.o: trace.c
 	$(CXX) -O3 -c -o $@ $<
 
 clean:
-	rm -f Makefile~ *.cpp~ *.h~ *.o
+	rm -f *.o RT

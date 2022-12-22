@@ -10,14 +10,7 @@
 #include <omp.h>
 #include "CoreBlas.h"
 
-#ifndef __Test__Min__
-#define __Test__Min__
-
-#define min(a,b) (((a)<(b)) ? (a) : (b))
-
-#endif // __Test__Min__
-
-#define max(a,b) (((a)>(b)) ? (a) : (b))
+using namespace std;
 
 /*
  * GEQRT conputes a QR factorization of a tile A: A = Q * R
@@ -216,21 +209,19 @@ void dorgqr( const TMatrix< Tile<double> > A,
     const int qMT = Q.mt();
     const int qNT = Q.nt();
 
-    for (int tk = min(aMT, aNT)-1; tk+1 >= 1; tk--) {
-        for (int ti = qMT - 1; ti > tk; ti--) {
+    for (int tk = min(aMT, aNT)-1; tk+1 >= 1; tk--)
+    {
+        for (int ti = qMT - 1; ti > tk; ti--)
+        {
             #pragma omp parallel for
-            for (int tj = tk; tj < qNT; tj++) {
-				
+            for (int tj = tk; tj < qNT; tj++)
                 SSRFB( PlasmaLeft, PlasmaNoTrans,
                        A(ti,tk), T(ti,tk), Q(tk,tj), Q(ti,tj) );
-            }
         }
         #pragma omp parallel for
-        for (int tj = tk; tj < qNT; tj++) {
-
+        for (int tj = tk; tj < qNT; tj++)
             LARFB( PlasmaLeft, PlasmaNoTrans,
                    A(tk,tk), T(tk,tk), Q(tk,tj) );
-        }
     }
 }
 
