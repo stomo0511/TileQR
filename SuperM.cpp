@@ -145,7 +145,7 @@ _Tp& SuperM<_Tp>::operator[]( const int i ) const
 }
 
 template <class _Tp>
-_Tp& SuperM<_Tp>::operator()( const int i, const int j) const
+_Tp& SuperM<_Tp>::operator()( const int i, const int j ) const
 {
 	assert( i >= 0 );  assert( i < m_ );
 	assert( j >= 0 );  assert( j < n_ );
