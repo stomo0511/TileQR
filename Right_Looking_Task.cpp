@@ -19,7 +19,7 @@ extern void trace_label(const char *color, const char *label);
 void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Tile<double> >& T )
 {
     //////////////////////////////////////////////////////////////////////
-    // Right Looking tile QR Task version
+    // Right Looking tile QR Task parallel version
     #pragma omp parallel
     {
         #pragma omp single
