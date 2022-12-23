@@ -39,22 +39,27 @@ ifeq ($(UNAME),Darwin)
 	CXXFLAGS = -fopenmp -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
 endif
 
-RT_OBJS = SuperM.o Matrix.o Tile.o TMatrix.o CoreBlas.o Check_Accuracy.o TileQR.o Right_Looking_Task.o
+OBJS = SuperM.o Matrix.o Tile.o TMatrix.o CoreBlas.o Check_Accuracy.o TileQR.o
+RT_OBJS = $(OBJS) Right_Looking.o
+LL_OBJS = $(OBJS) Left_Looking.o
 
 # for Performance evaluation
-CXXFLAGS += -O3
+# CXXFLAGS += -O3
 
 # for Debug
-# CXXFLAGS += -DDEBUG -g
+CXXFLAGS += -DDEBUG -g
 
 # for Trace
 # CXXFLAGS += -DTRACE
 # RT_OBJS += trace.o
 
-all: RT
+all: RT LL
 
 RT : $(RT_OBJS)
 	$(CXX) $(CFLAGS) -o $@ $(RT_OBJS) $(PLASMA_LIBS) $(BLAS_LIBS) -lgomp
+
+LL : $(LL_OBJS)
+	$(CXX) $(CFLAGS) -o $@ $(LL_OBJS) $(PLASMA_LIBS) $(BLAS_LIBS) -lgomp
 
 .cpp.o :
 	$(CXX) $(CXXFLAGS) -c $<

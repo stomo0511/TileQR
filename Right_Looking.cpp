@@ -4,9 +4,9 @@
 //  Created by T. Suzuki on 2022/12/21.
 //
 
-#include "CoreBlas.h"
 #include <cstdlib>
 #include <omp.h>
+#include "CoreBlas.h"
 
 using namespace std;
 
@@ -123,8 +123,8 @@ void tileQR( const int MT, const int NT, TMatrix< Tile<double> >& A, TMatrix< Ti
                     } // j-LOOP END
                 } // i-LOOP END
             } // k-LOOP END
-        } // parallel section END
-    }
+        } // single section END
+    } // parallel section END
     // Right Looking tile QR END
     //////////////////////////////////////////////////////////////////////
 }
