@@ -32,10 +32,10 @@ ifeq ($(UNAME),Darwin)
 	OPENBLAS_DIR = /opt/homebrew/opt/openblas
 	BLAS_INC_DIR = $(OPENBLAS_DIR)/include
 	BLAS_LIB_DIR = $(OPENBLAS_DIR)/lib
-	BLAS_LIBS = -L$(BLAS_LIB_DIR) -lopenblas 
+	BLAS_LIBS = -L$(BLAS_LIB_DIR) -lopenblas -lgomp
 
-	CXX = g++-12
-	CC = gcc-12
+	CXX = g++-13
+	CC = gcc-13
 	CXXFLAGS = -fopenmp -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
 endif
 
@@ -47,7 +47,7 @@ LL_OBJS = $(OBJS) Left_Looking.o
 CXXFLAGS += -O3
 
 # for Debug
-# CXXFLAGS += -DDEBUG -g
+CXXFLAGS += -DDEBUG -g
 
 # for Trace
 # CXXFLAGS += -DTRACE
@@ -56,10 +56,10 @@ CXXFLAGS += -O3
 all: RL LL
 
 RL : $(RL_OBJS)
-	$(CXX) $(CFLAGS) -o $@ $(RL_OBJS) $(PLASMA_LIBS) $(BLAS_LIBS) -lgomp
+	$(CXX) $(CFLAGS) -o $@ $(RL_OBJS) $(PLASMA_LIBS) $(BLAS_LIBS) 
 
 LL : $(LL_OBJS)
-	$(CXX) $(CFLAGS) -o $@ $(LL_OBJS) $(PLASMA_LIBS) $(BLAS_LIBS) -lgomp
+	$(CXX) $(CFLAGS) -o $@ $(LL_OBJS) $(PLASMA_LIBS) $(BLAS_LIBS)
 
 .cpp.o :
 	$(CXX) $(CXXFLAGS) -c $<
@@ -68,4 +68,4 @@ trace.o: trace.c
 	$(CXX) -O3 -c -o $@ $<
 
 clean:
-	rm -f *.o RT
+	rm -f *.o RL LL
