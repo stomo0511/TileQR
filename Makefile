@@ -47,7 +47,7 @@ LL_OBJS = $(OBJS) Left_Looking.o
 CXXFLAGS += -O3
 
 # for Debug
-CXXFLAGS += -DDEBUG -g
+# CXXFLAGS += -DDEBUG -g
 
 # for Trace
 # CXXFLAGS += -DTRACE
