@@ -15,11 +15,11 @@ ifeq ($(UNAME),Linux)
 		PLASMA_DIR = /opt/plasma
 		PLASMA_LIB_DIR = $(PLASMA_DIR)/lib
 		PLASMA_INC_DIR = $(PLASMA_DIR)/include
-		PLASMA_LIBS = -lplasma_core_blas
+		PLASMA_LIBS = -L$(PLASMA_LIB_DIR) -lplasma_core_blas
 
 		CXX = g++-9
 		CXXFLAGS = -DMKL -I$(MKL_INC_DIR) -I$(PLASMA_INC_DIR) -fopenmp
-		BLAS_LIBS = -L$(MKL_LIB_DIR) $(MKL_LIBS) -L$(PLASMA_LIB_DIR) $(PLASMA_LIBS) -lpthread -lm -ldl
+		BLAS_LIBS = -L$(MKL_LIB_DIR) $(MKL_LIBS) -lpthread -lm -ldl
 	endif
 endif
 ifeq ($(UNAME),Darwin)
