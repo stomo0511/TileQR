@@ -39,7 +39,7 @@ ifeq ($(UNAME),Darwin)
 	CXXFLAGS = -fopenmp -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
 endif
 
-OBJS = TileQR.o Check_Accuracy.o
+OBJS = TileQR.o Check_Accuracy.o CoreBlas.o
 
 # for Performance evaluation
 CXXFLAGS += -O3

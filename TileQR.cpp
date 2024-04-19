@@ -9,32 +9,24 @@
 #include <cassert>
 #include <omp.h>
 #include <mkl.h>
+#include <plasma_core_blas.h>
 
 #include "Check_Accuracy.h"
+#include "CoreBlas.h"
 
 using namespace std;
 
-// Generate random LOWER matrix
-void Gen_rand_mat(const int m, const int n, double *A)
+// Generate random tiled matrix
+void Gen_rand_tiled_mat(const int i, const int j, const int m, const int n, const int mb, const int nb, double *At)
 {
 	srand(20240417);
 
-//	#pragma omp parallel for
-	for (int i=0; i<m; i++)
-		for (int j=0; j<n; j++)
-            A[i+j*m] = 1.0 - 2*(double)rand() / RAND_MAX;
-}
+	const int ib = min(m-i*mb,mb);     // tile row size
+	const int jb = min(n-j*nb,nb);     // tile col size
 
-// Show matrix
-void Show_mat(const int m, const int n, double *A)
-{
-	for (int i=0; i<m; i++)
-    {
-		for (int j=0; j<n; j++)
-			cout << A[i + j*m] << ", ";
-		cout << endl;
-	}
-	cout << endl;
+    for (int jj=0; jj<jb; jj++)
+        for (int ii=0; ii<ib; ii++)
+            At[ii+jj*ib] = 1.0 - 2*(double)rand() / RAND_MAX;
 }
 
 // Debug mode
@@ -55,67 +47,57 @@ int main(int argc, const char ** argv)
     //Usage "a.out [size of matrix: M ] [tile size: NB] [inner block size: IB]"
     assert(argc > 3);
 
-    const int m =  atoi(argv[1]);  // matrix size
-    const int nb = atoi(argv[2]);  // tile size
-    const int ib = atoi(argv[3]);  // inner blocking size
+    const int m =  atoi(argv[1]);   // matrix size
+    const int n = m;
+    const int mb = atoi(argv[2]);   // tile size
+    const int nb = mb;
+    const int ib = atoi(argv[3]);   // inner blocking size
 
-    // q: # of tiles
-    const int q = (m % nb == 0) ? m/nb : m/nb+1;
+   	const int nmb = (m % mb == 0) ? m/mb : m/mb+1;  // # of tile rows
+	const int nnb = (n % nb == 0) ? n/nb : n/nb+1;  // # of tile cols
 
-    assert(m >= nb);
-    assert(nb >= ib);
+    assert(m >= mb);
+    assert(mb >= ib);
 	
     #ifdef DEBUG
-    cout << "m = " << m << ", nb = " << nb << ", ib = " << ib << endl;
+    cout << "m = " << m << ", mb = " << mb << ", ib = " << ib << endl;
     cout << "# of threads = " << omp_get_max_threads() << endl;
     #endif
 	
-    double *A = new double [m*m];    // Original matrix: A
-    Gen_rand_mat(m,m,A);             // Randomize elements of A
+    double *AT[nmb][nnb];          // AT: Tiled matrix
+    double *TT[nmb][nnb];          // TT: Tiled Householder matrix
+    for (int j=0; j<nnb; j++)
+    {
+        const int nbj = min(n-j*nb,nb);     // tile col size
+        for (int i=0; i<nmb; i++)
+        {
+            const int mbi = min(m-i*mb,mb); // tile row size
+            AT[i][j] = new double [mbi * nbj];
+            Gen_rand_tiled_mat(i,j,m,n,mb,nb,AT[i][j]);
 
-    double *T = new double [q*ib * q*nb]; // T: Householder vectors
-	
-	////////// Debug mode //////////
-	#ifdef DEBUG
-	double *OA = new double [m*m];
-	cblas_dcopy(m*m, A, 1, OA, 1);
-    double *R = new double [m*m];
-	#endif
-	////////// Debug mode //////////
+            TT[i][j] = new double [ib * nbj];
+        }
+    }
 
     // Timer start
     double time = omp_get_wtime();
-	
-    //////////////////////////////////////////////////////////////////////
-    LAPACKE_dgeqrf(LAPACK_COL_MAJOR, m, m, A, m, T);
-    //////////////////////////////////////////////////////////////////////
-	
+
+    for (int k=0; k<min(nmb,nnb); k++)
+    {
+        const int mbk = min(m-k*mb,mb);     // tile row size
+        GEQRT(mbk, mbk, ib, AT[k][k], mbk, TT[k][k], ib);
+    }
+
     // Timer stop
     time = omp_get_wtime() - time;
     cout << m << ", " << nb << ", " << ib << ", " << time << endl;
 	
-    #ifdef DEBUG
-    // Copy upper triangular part of A to R
-    for (int i=0; i<m; i++)
-        for (int j=0; j<m; j++)
-            if (i <= j)
-                R[i+j*m] = A[i+j*m];
-            else
-                R[i+j*m] = 0.0;
-
-    // Regenerate orthogonal matrix Q
-    LAPACKE_dorgqr(LAPACK_COL_MAJOR, m, m, m, A, m, T);
-
-    Check_Accuracy(m,m,OA,A,R);
-    // // Check Accuracy END
-    // //////////////////////////////////////////////////////////////////////
-
-	delete [] OA;
-    delete [] R;
-    #endif
-
-    delete [] A;
-    delete [] T;
+    for (int j=0; j<nnb; j++)
+        for (int i=0; i<nmb; i++)
+        {
+            delete [] AT[i][j];
+            delete [] TT[i][j];
+        }
 
     return EXIT_SUCCESS;
 }
