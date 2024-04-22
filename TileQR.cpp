@@ -79,19 +79,62 @@ int main(int argc, const char ** argv)
         }
     }
 
+   for (int i=0; i<m; i++)
+    {
+        for (int j=0; j<n; j++)
+            cout << AT[0][0][i+j*m] << ", ";
+        cout << endl;
+    }
+    cout << endl;
+
     // Timer start
     double time = omp_get_wtime();
 
     for (int k=0; k<min(nmb,nnb); k++)
     {
         const int mbk = min(m-k*mb,mb);     // tile row size
-        GEQRT(mbk, mbk, ib, AT[k][k], mbk, TT[k][k], ib);
+
+        GEQRT(mbk, mbk, ib, 
+            AT[k][k], mbk, TT[k][k], ib);
+
+        for (int j=k+1; j<nnb; j++)
+        {
+            const int nbj = min(n-j*nb,nb); // tile col size
+
+            LARFB(PlasmaLeft, PlasmaTrans, 
+                mbk, nbj, mbk, ib, 
+                AT[k][k], mbk, TT[k][k], ib, AT[k][j], mbk);
+        }
+
+        for (int i=k+1; i<nmb; i++)
+        {
+            const int mbi = min(m-i*mb,mb); // tile row size
+
+            TSQRT(mbk, mbk, mbi, mbk, ib, 
+                AT[k][k], mbk, AT[i][k], mbi, TT[i][k], ib);
+            
+            for (int j=k+1; j<nnb; j++)
+            {
+                const int nbj = min(n-j*nb,nb); // tile col size
+
+                SSRFB(PlasmaLeft, PlasmaTrans, 
+                    mbk, nbj, mbi, nbj, mbk, ib,
+                    AT[i][k], mbi, TT[i][k], ib, AT[k][j], mbk, AT[i][j], mbi);
+            }
+        }
     }
 
     // Timer stop
     time = omp_get_wtime() - time;
     cout << m << ", " << nb << ", " << ib << ", " << time << endl;
-	
+
+   for (int i=0; i<m; i++)
+    {
+        for (int j=0; j<n; j++)
+            cout << AT[0][0][i+j*m] << ", ";
+        cout << endl;
+    }
+
     for (int j=0; j<nnb; j++)
         for (int i=0; i<nmb; i++)
         {

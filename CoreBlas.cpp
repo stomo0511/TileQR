@@ -186,3 +186,63 @@ void SSRFB( plasma_enum_t side, plasma_enum_t trans,
 //     delete [] TAU;
 // }
 
+/*
+ * STRFB updates (M1 x N1) tile C1 and (M2 x N2) tile C2 with the transformation formed with A and T
+ *
+ * @param[in] side
+ *		@arg PlasmaLeft:  apply transformation from the left
+ *		@arg PlasmaRight: apply transformation from the right
+ *
+ * @param[in] trans
+ *		@arg PlasmaNoTrans: no transpose the matrix
+ *		@arg PlasmaTrans: transpose the matrix
+ *
+ * @param[in] A (LDA x K) tile matrix
+ * @param[in] T (IB x K) upper triangular block reflector
+ * @param[in,out] C1 (M1 x N1) tile matrix
+ * @param[in,out] C2 (M2 x N2) tile matrix
+ */
+// void STRFB( plasma_enum_t side, plasma_enum_t trans,
+//             Tile<double> *A, Tile<double> *T, Tile<double> *C1, Tile<double> *C2 )
+// {
+//     assert( (side==PlasmaLeft) || (side==PlasmaRight) );
+//     assert( (trans==PlasmaTrans) || (trans==PlasmaNoTrans) );
+	
+//     const int M1 = C1->m();
+//     const int M2 = C2->m();
+	
+//     const int N1 = C1->n();
+//     const int N2 = C2->n();
+	
+//     const int K = A->n();
+	
+//     const int IB = C1->ib();
+//     const int LDA1 = C1->m();
+//     const int LDA2 = C2->m();
+//     const int LDV = A->m();
+//     const int LDT = T->m();
+	
+//     int LDWORK;
+//     if (side == PlasmaLeft)
+//         LDWORK = IB;
+//     else // side == PlasmaRight
+//         LDWORK = M1;
+	
+//     int WSIZE;
+//     if (side == PlasmaLeft)
+//         WSIZE = N1;
+//     else // side == PlasmaRight
+//         WSIZE = IB;
+	
+//     double* WORK = new double[ LDWORK * WSIZE ];
+	
+//     plasma_core_dttmqr( side, trans,
+//                  M1, N1, M2, N2, K, IB,
+//                  C1->top(), LDA1,
+//                  C2->top(), LDA2,
+//                  A->top(), LDV,
+//                  T->top(), LDT,
+//                  WORK, LDWORK);
+	
+//     delete [] WORK;
+// }
