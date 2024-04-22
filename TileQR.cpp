@@ -19,14 +19,34 @@ using namespace std;
 // Generate random tiled matrix
 void Gen_rand_tiled_mat(const int i, const int j, const int m, const int n, const int mb, const int nb, double *At)
 {
-	srand(20240417);
-
 	const int ib = min(m-i*mb,mb);     // tile row size
 	const int jb = min(n-j*nb,nb);     // tile col size
 
     for (int jj=0; jj<jb; jj++)
         for (int ii=0; ii<ib; ii++)
             At[ii+jj*ib] = 1.0 - 2*(double)rand() / RAND_MAX;
+}
+
+void Show_tiled_mat(const int m, const int n, const int mb, const int nb, double ***AT)
+{
+    const int nmb = (m % mb == 0) ? m/mb : m/mb+1;  // # of tile rows
+	const int nnb = (n % nb == 0) ? n/nb : n/nb+1;  // # of tile cols
+
+    for (int j=0; j<nnb; j++)
+    {
+        const int nbj = min(n-j*nb,nb);     // tile col size
+        for (int i=0; i<nmb; i++)
+        {
+            const int mbi = min(m-i*mb,mb); // tile row size
+            for (int jj=0; jj<nbj; jj++)
+            {
+                for (int ii=0; ii<mbi; ii++)
+                    cout << AT[i][j][ii+jj*mbi] << ", ";
+                cout << endl;
+            }
+            cout << endl;
+        }
+    }
 }
 
 // Debug mode
@@ -64,6 +84,8 @@ int main(int argc, const char ** argv)
     cout << "# of threads = " << omp_get_max_threads() << endl;
     #endif
 	
+    srand(20240417);               // random seed
+
     double *AT[nmb][nnb];          // AT: Tiled matrix
     double *TT[nmb][nnb];          // TT: Tiled Householder matrix
     for (int j=0; j<nnb; j++)
@@ -79,13 +101,16 @@ int main(int argc, const char ** argv)
         }
     }
 
-   for (int i=0; i<m; i++)
-    {
-        for (int j=0; j<n; j++)
-            cout << AT[0][0][i+j*m] << ", ";
-        cout << endl;
-    }
-    cout << endl;
+//    for (int i=0; i<m; i++)
+//     {
+//         for (int j=0; j<n; j++)
+//             cout << AT[0][0][i+j*m] << ", ";
+//         cout << endl;
+//     }
+//     cout << endl;
+    // double ***AT_ptr = &AT[0][0];
+    double *(*AT_ptr)[nnb] = AT;
+    Show_tiled_mat(m, n, mb, nb, AT_ptr);
 
     // Timer start
     double time = omp_get_wtime();
