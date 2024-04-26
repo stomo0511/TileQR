@@ -12,47 +12,87 @@
 
 using namespace std;
 
-/*
- * GEQRT conputes a QR factorization of a tile A: A = Q * R
- */
-void GEQRT( const int mb, const int nb, const int ib, double *A, const int lda, double *T, const int ldt)
+//
+// GEQRT conputes a QR factorization of a tile A: A = Q * R
+//
+// @param[in] mb: row size of tile A
+// @param[in] nb: col size of tile A
+// @param[in] ib: inner block size
+// @param[in,out] A: (mb x nb) tile matrix
+// @param[in] lda: leading dimension of A
+// @param[out] T: (ib x nb) upper triangular block reflector
+// @param[in] ldt: leading dimension of T
+//
+void GEQRT( const int mb, const int nb, const int ib, 
+    double *A, const int lda, double *T, const int ldt)
 {
-    assert( mb == nb );
+    assert( ib <= mb && ib <= nb  );
 
     const int NB = max(lda,ldt);
 	
     double* WORK = new double[ ib*NB ];
     double* TAU = new double[ NB ];
 	
-    plasma_core_dgeqrt( mb, mb, ib, A, lda, T, ldt, TAU, WORK );
+    plasma_core_dgeqrt( mb, mb, ib, 
+        A, lda, 
+        T, ldt, 
+        TAU, WORK );
 	
     delete [] WORK;
     delete [] TAU;
 }
 
-/*
- * TSQRT conputes a QR factorization of a rectangular matrix formed by cupling (N x N) upper triangular tile A1 on top of (M x N) tile A2
- *
- */
-void TSQRT( const int mb1, const int nb1, const int mb2, const int nb2, const int ib, double *A1, const int lda1, double *A2, const int lda2, double *T, const int ldt )
+//
+// TSQRT conputes a QR factorization of a rectangular matrix formed by cupling (N x N) upper triangular tile A1 on top of (M x N) tile A2
+// 
+// @param[in] mb1: row size of tile A1
+// @param[in] nb1: col size of tile A1
+// @param[in] mb2: row size of tile A2
+// @param[in] nb2: col size of tile A2
+// @param[in] ib: inner block size
+// @param[in,out] A1: (mb1 x nb1) tile matrix
+// @param[in] lda1: leading dimension of A1
+// @param[in,out] A2: (mb2 x nb2) tile matrix
+// @param[in] lda2: leading dimension of A2
+// @param[out] T: (ib x nb2) upper triangular block reflector
+// @param[in] ldt: leading dimension of T
+//
+void TSQRT( const int mb1, const int nb1, const int mb2, const int nb2, const int ib, 
+    double *A1, const int lda1, double *A2, const int lda2, double *T, const int ldt )
 {
-    assert( mb1 == nb1 );
-    assert( nb1 == nb2 );
+    assert( mb1 == nb1 );   // A1 should be square
+    assert( nb1 == nb2 );   // A1 and A2 should have the same col size
 	
     const int NB = max(lda1,ldt);
 	
     double* WORK = new double[ ib*NB ];
     double* TAU = new double[ NB ];
 	
-    plasma_core_dtsqrt( mb2, nb2, ib, A1, lda1, A2, lda2, T, ldt, TAU, WORK );
+    plasma_core_dtsqrt( mb2, nb2, ib, 
+        A1, lda1, 
+        A2, lda2, 
+        T, ldt, TAU, WORK );
 	
     delete [] WORK;
     delete [] TAU;
 }
 
-/*
- * LARFB updates (mb x nb) tile C with the transformation formed with A and T
- */
+// 
+// LARFB updates (mb x nb) tile C with the transformation formed with A and T
+// 
+// @param[in] side (PlasmaLeft or PlasmaRight)
+// @param[in] trans (PlasmaTrans or PlasmaNoTrans)
+// @param[in] mb: row size of tile C
+// @param[in] nb: col size of tile C
+// @param[in] kb: col size of tile A
+// @param[in] ib: inner block size
+// @param[in] A: (mb x kb) tile matrix
+// @param[in] lda: leading dimension of A
+// @param[in] T: (ib x kb) upper triangular block reflector
+// @param[in] ldt: leading dimension of T
+// @param[in,out] C: (mb x nb) tile matrix
+// @param[in] ldc: leading dimension of C
+//
 void LARFB( plasma_enum_t side, plasma_enum_t trans,
             const int mb, const int nb, const int kb, const int ib,
             double *A, const int lda, double *T, const int ldt, double *C, const int ldc )
@@ -60,10 +100,6 @@ void LARFB( plasma_enum_t side, plasma_enum_t trans,
     assert( (side==PlasmaLeft) || (side==PlasmaRight) );
     assert( (trans==PlasmaTrans) || (trans==PlasmaNoTrans) );
 	
-    // const int M = C->m();
-    // const int N = C->n();
-    // const int K = A->n();
-
     if (side == PlasmaLeft)
         assert( mb >= kb );
     else // (side == PlasmaRight)
@@ -83,9 +119,26 @@ void LARFB( plasma_enum_t side, plasma_enum_t trans,
     delete [] WORK;
 }
 
-/*
- * SSRFB updates (mb1 x nb1) tile C1 and (mb2 x nb2) tile C2 with the transformation formed with A and T
- */
+//
+// SSRFB updates (mb1 x nb1) tile C1 and (mb2 x nb2) tile C2 with the transformation formed with A and T
+//
+// @param[in] side (PlasmaLeft or PlasmaRight)
+// @param[in] trans (PlasmaTrans or PlasmaNoTrans)
+// @param[in] mb1: row size of tile C1
+// @param[in] nb1: col size of tile C1
+// @param[in] mb2: row size of tile C2
+// @param[in] nb2: col size of tile C2
+// @param[in] kb: col size of tile A
+// @param[in] ib: inner block size
+// @param[in] A: (mb1 x kb) tile matrix
+// @param[in] lda: leading dimension of A
+// @param[in] T: (ib x kb) upper triangular block reflector
+// @param[in] ldt: leading dimension of T
+// @param[in,out] C1: (mb1 x nb1) tile matrix
+// @param[in] ldc1: leading dimension of C1
+// @param[in,out] C2: (mb2 x nb2) tile matrix
+// @param[in] ldc2: leading dimension of C2
+//
 void SSRFB( plasma_enum_t side, plasma_enum_t trans,
             const int mb1, const int nb1, const int mb2, const int nb2, const int kb, const int ib,
             double *A, const int lda, double *T, const int ldt, double *C1, const int ldc1, double *C2, const int ldc2 )
@@ -95,12 +148,9 @@ void SSRFB( plasma_enum_t side, plasma_enum_t trans,
 	
     if (side == PlasmaRight)
         assert( mb2 == mb1);
-
-    if (side == PlasmaLeft)
+    else // side == PlasmaLeft
         assert( nb2 == nb1);
 
-    // const int K = A->n();
-	
     int LDWORK;
     if (side == PlasmaLeft)
         LDWORK = ib;
@@ -121,128 +171,7 @@ void SSRFB( plasma_enum_t side, plasma_enum_t trans,
                  C2, ldc2,
                  A, lda,
                  T, ldt,
-                 WORK, LDWORK);
+                 WORK, LDWORK );
 	
     delete [] WORK;
 }
-
-/*
- * dorgqr: genarates (M x N) orthogonal matrix Q: A = Q x R
- */
-// void dorgqr( const TMatrix< Tile<double> > A,
-//              const TMatrix< Tile<double> > T,
-//              TMatrix< Tile<double> >& Q )
-// {
-//     assert( A.m() == Q.m() );
-	
-//     const int aMT = A.mt();
-//     const int aNT = A.nt();
-//     const int qMT = Q.mt();
-//     const int qNT = Q.nt();
-
-//     for (int tk = min(aMT, aNT)-1; tk+1 >= 1; tk--)
-//     {
-//         for (int ti = qMT - 1; ti > tk; ti--)
-//         {
-//             #pragma omp parallel for
-//             for (int tj = tk; tj < qNT; tj++)
-//                 SSRFB( PlasmaLeft, PlasmaNoTrans,
-//                        A(ti,tk), T(ti,tk), Q(tk,tj), Q(ti,tj) );
-//         }
-//         #pragma omp parallel for
-//         for (int tj = tk; tj < qNT; tj++)
-//             LARFB( PlasmaLeft, PlasmaNoTrans,
-//                    A(tk,tk), T(tk,tk), Q(tk,tj) );
-//     }
-// }
-
-/*
- * TTQRT conputes a QR factorization of a rectangular matrix formed by cupling (N x N) upper triangular tile A1 on top of (M x N) upper trapezoidal tile A2
- */
-// void TTQRT( Tile<double> *A1, Tile<double> *A2, Tile<double> *T )
-// {
-//     const int M = A2->m();
-//     const int N = A1->n();
-	
-//     assert( N == A2->n() );
-	
-//     const int IB = A1->ib();
-//     const int LDA1 = A1->m();
-//     const int LDA2 = A2->m();
-//     const int LDT = T->m();
-	
-//     const int NB = max(LDA1,LDT);
-	
-//     double* WORK = new double[ IB*NB ];
-//     double* TAU = new double[ NB ];
-	
-//     plasma_core_dttqrt( M, N, IB,
-//                  A1->top(), LDA1,
-//                  A2->top(), LDA2,
-//                  T->top(), LDT,
-//                  TAU, WORK );
-	
-//     delete [] WORK;
-//     delete [] TAU;
-// }
-
-/*
- * STRFB updates (M1 x N1) tile C1 and (M2 x N2) tile C2 with the transformation formed with A and T
- *
- * @param[in] side
- *		@arg PlasmaLeft:  apply transformation from the left
- *		@arg PlasmaRight: apply transformation from the right
- *
- * @param[in] trans
- *		@arg PlasmaNoTrans: no transpose the matrix
- *		@arg PlasmaTrans: transpose the matrix
- *
- * @param[in] A (LDA x K) tile matrix
- * @param[in] T (IB x K) upper triangular block reflector
- * @param[in,out] C1 (M1 x N1) tile matrix
- * @param[in,out] C2 (M2 x N2) tile matrix
- */
-// void STRFB( plasma_enum_t side, plasma_enum_t trans,
-//             Tile<double> *A, Tile<double> *T, Tile<double> *C1, Tile<double> *C2 )
-// {
-//     assert( (side==PlasmaLeft) || (side==PlasmaRight) );
-//     assert( (trans==PlasmaTrans) || (trans==PlasmaNoTrans) );
-	
-//     const int M1 = C1->m();
-//     const int M2 = C2->m();
-	
-//     const int N1 = C1->n();
-//     const int N2 = C2->n();
-	
-//     const int K = A->n();
-	
-//     const int IB = C1->ib();
-//     const int LDA1 = C1->m();
-//     const int LDA2 = C2->m();
-//     const int LDV = A->m();
-//     const int LDT = T->m();
-	
-//     int LDWORK;
-//     if (side == PlasmaLeft)
-//         LDWORK = IB;
-//     else // side == PlasmaRight
-//         LDWORK = M1;
-	
-//     int WSIZE;
-//     if (side == PlasmaLeft)
-//         WSIZE = N1;
-//     else // side == PlasmaRight
-//         WSIZE = IB;
-	
-//     double* WORK = new double[ LDWORK * WSIZE ];
-	
-//     plasma_core_dttmqr( side, trans,
-//                  M1, N1, M2, N2, K, IB,
-//                  C1->top(), LDA1,
-//                  C2->top(), LDA2,
-//                  A->top(), LDV,
-//                  T->top(), LDT,
-//                  WORK, LDWORK);
-	
-//     delete [] WORK;
-// }

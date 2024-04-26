@@ -23,10 +23,5 @@ void LARFB( plasma_enum_t side, plasma_enum_t trans,
 void SSRFB( plasma_enum_t side, plasma_enum_t trans,
             const int mb1, const int nb1, const int mb2, const int nb2, const int kb, const int ib,
             double *A, const int lda, double *T, const int ldt, double *C1, const int ldc1, double *C2, const int ldc2 );
-// void TTQRT( Tile<double> *A1, Tile<double> *A2, Tile<double> *T );
-// void STRFB( plasma_enum_t side, plasma_enum_t trans,
-// 		   Tile<double> *A, Tile<double> *T, Tile<double> *C1, Tile<double> *C2 );
-
-// void dorgqr( const TMatrix< Tile<double> > A, const TMatrix< Tile<double> > T, TMatrix< Tile<double> >& Q );
 
 #endif /* defined(__Tile__CoreBlas__) */
