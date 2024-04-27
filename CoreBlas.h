@@ -13,8 +13,6 @@
 #include <plasma.h>
 #include <plasma_core_blas.h>
 
-#include "TMatrix.h"
-
 void GEQRT( const int mb, const int nb, const int ib, double *A, const int lda, double *T, const int ldt);
 void TSQRT( const int mb1, const int nb1, const int mb2, const int nb2, const int ib, double *A1, const int lda1, double *A2, const int lda2, double *T, const int ldt );
 void LARFB( plasma_enum_t side, plasma_enum_t trans,
