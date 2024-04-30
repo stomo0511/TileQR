@@ -12,16 +12,16 @@ using namespace std;
 
 void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *mR )
 {
-    ////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////
     // Check Orthogonarity
-	
+
     // Set Id to the identity matrix
     int mn = min(M,N);
     double* Id = new double[ mn * mn ];
     for (int i=0; i<mn; i++)
         for (int j=0; j<mn; j++)
         Id[ i + j*mn ] = (i == j) ? 1.0 : 0.0;
-        
+
     double alpha = 1.0;
     double beta  = -1.0;
         
@@ -29,11 +29,14 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
             N, M, alpha, mQ, M, beta, Id, N);
         
     double* Work = new double[ mn ];
-    double normQ = LAPACKE_dlansy_work(LAPACK_COL_MAJOR, 'F', 'U', 
+    double ortho = LAPACKE_dlansy_work(LAPACK_COL_MAJOR, 'I', 'U', 
                         mn, Id, mn, Work);
     delete [] Work;
 
-    std::cout << "norm(I-Q*Q') = " << normQ << std::endl;
+    // normalize the result
+    // |Id - Q^T * Q|_oo / n
+    ortho /= mn;
+    std::cout << "norm(I-Q'*Q) = " << ortho << std::endl;
 
     // Check Orthogonarity END
     //////////////////////////////////////////////////////////////////////
@@ -43,7 +46,13 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
     double* QR = new double[ M * N ];
     alpha = 1.0;
     beta  = 0.0;
-        
+
+    Work = new double[ M ];
+
+    // |A|_oo
+    double normA = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', M, N, mA, M, Work);
+
+    // ToDo: A <- A - Q*R に変更
     cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 
             M, N, M, alpha, mQ, M, mR, M, beta, QR, M);
         
@@ -51,9 +60,12 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
         for (int j = 0; j < N; j++)
         QR[ i + j*M ] -= mA[ i + j*M ];
 
-    Work = new double[ M ];
-    normQ = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'F', 
+    double normQ = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', 
                     M, N, QR, M, Work);
+
+    // normalize the result
+    // |A-QR|_oo / (|A|_oo * n)
+    normQ /= (normA * N);
     std::cout << "norm(A-Q*R) = " << normQ << std::endl;
 
     // Check Residure END

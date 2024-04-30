@@ -232,6 +232,7 @@ int main(int argc, const char ** argv)
     #ifdef DEBUG
     double *QT[nmb][nnb];          // QT: Tiled matrix
 
+    // cout << "nmb = " << nmb << ", nnb = " << nnb << endl;
     for (int j=0; j<nnb; j++)
     {
         const int nbj = min(n-j*nb,nb);     // tile col size
@@ -241,11 +242,15 @@ int main(int argc, const char ** argv)
             QT[i][j] = new double [mbi * nbj];
 
             if (i==j)
+            {
                 // Diagonal tiles are set to be identity matrix
                 LAPACKE_dlaset_work(LAPACK_COL_MAJOR, 'g', mbi, nbj, 0.0, 1.0, QT[i][j], mbi);
+            }
             else
+            {
                 // Non-diagonal tiles are set to be zero matrix
                 LAPACKE_dlaset_work(LAPACK_COL_MAJOR, 'g', mbi, nbj, 0.0, 0.0, QT[i][j], mbi);
+            }
         }
     }
 
@@ -265,6 +270,7 @@ int main(int argc, const char ** argv)
                 SSRFB(PlasmaLeft, PlasmaNoTrans, 
                     mbk, nbj, mbi, nbj, mbk, ib,
                     AT[i][k], mbi, TT[i][k], ib, QT[k][j], mbk, QT[i][j], mbi);
+                // cout << "SSRFB[" << i << "][" << j << "]" << endl;
             }
         }
         for (int j=k; j<nnb; j++)
@@ -274,6 +280,7 @@ int main(int argc, const char ** argv)
             LARFB(PlasmaLeft, PlasmaNoTrans, 
                 mbk, nbj, mbk, ib, 
                 AT[k][k], mbk, TT[k][k], ib, QT[k][j], mbk);
+            // cout << "LARFB[" << k << "][" << j << "]" << endl;
         }
     }
 
@@ -299,7 +306,7 @@ int main(int argc, const char ** argv)
     LAPACKE_dlaset_work(LAPACK_COL_MAJOR, 'g', m, m, 0.0, 1.0, Id, lda);
 
     // Perform Id - Q^T * Q
-    cblas_dsyrk(CblasColMajor, CblasUpper, CblasConjTrans, m, m, -1.0, Q, lda, 1.0, Id, lda);
+    cblas_dsyrk(CblasColMajor, CblasUpper, CblasTrans, m, m, 1.0, Q, lda, -1.0, Id, lda);
 
     // work array of size m is needed for computing L_oo norm
     double *work = new double [m];
@@ -324,16 +331,41 @@ int main(int argc, const char ** argv)
     for (int j=0; j<nnb; j++)
     {
         const int nbj = min(n-j*nb,nb);     // tile col size
-        for (int i=j; i<nmb; i++)    // Upper part of the tile matrix
+
+        for (int i=0; i<nmb; i++)
         {
             const int mbi = min(m-i*mb,mb); // tile row size
             double* Rij = R+(j*nb*lda + i*mb);
-            for (int jj=0; jj<nbj; jj++)
-                for (int ii=0; ii<mbi; ii++)
-                        Rij[ ii + jj*lda ] = AT[i][j][ ii + jj*mbi ];
+
+            if (j>=i)          // lower part
+            {
+                if (j==i)
+                {
+                    // cout << "(" << i << "," << j << ")" << endl;
+                    for (int jj=0; jj<nbj; jj++)
+                        for (int ii=0; ii<mbi; ii++)
+                            if (jj >= ii)
+                                Rij[ ii + jj*lda ] = AT[i][j][ ii + jj*mbi ];
+                            else
+                                Rij[ ii + jj*lda ] = 0.0;
+                }
+                else
+                {
+                    // cout << "(" << i << "," << j << ")" << endl;
+                    for (int jj=0; jj<nbj; jj++)
+                        for (int ii=0; ii<mbi; ii++)
+                            Rij[ ii + jj*lda ] = AT[i][j][ ii + jj*mbi ];
+                }
+            }
+            else
+            {
+                // cout << "(" << i << "," << j << ")" << endl;
+                for (int jj=0; jj<nbj; jj++)
+                        for (int ii=0; ii<mbi; ii++)
+                            Rij[ ii + jj*lda ] = 0.0;
+            }
         }
     }
-    LAPACKE_dlaset_work(LAPACK_COL_MAJOR, 'l', m, n, 0.0, 0.0, R, m);
 
     for (int j=0; j<nnb; j++)
     {
@@ -354,7 +386,7 @@ int main(int argc, const char ** argv)
     double normA = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', m, n, A, lda, work);
 
     // Compute A - Q*R.
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, m, n, m, -1.0, Q, lda, R, lda, 1.0, A, lda);
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, m, n, m, 1.0, Q, lda, R, lda, -1.0, A, lda);
 
     // |A - Q*R|_oo
     double error = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', m, n, A, lda, work);

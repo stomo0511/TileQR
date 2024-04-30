@@ -92,13 +92,6 @@ int main(int argc, const char ** argv)
     time = omp_get_wtime() - time;
     cout << m << ", " << time << endl;
 	
-    // for (int i=0; i<m; i++)
-    // {
-    //     for (int j=0; j<m; j++)
-    //             cout << A[i+j*m] << ", ";
-    //     cout << endl;
-    // }
-
     #ifdef DEBUG
     // Copy upper triangular part of A to R
     for (int i=0; i<m; i++)
