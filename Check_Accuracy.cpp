@@ -35,7 +35,7 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
 
     // normalize the result
     // |Id - Q^T * Q|_oo / n
-    ortho /= mn;
+    // ortho /= mn;
     std::cout << "norm(I-Q'*Q) = " << ortho << std::endl;
 
     // Check Orthogonarity END
@@ -65,7 +65,7 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
 
     // normalize the result
     // |A-QR|_oo / (|A|_oo * n)
-    normQ /= (normA * N);
+    // normQ /= (normA * N);
     std::cout << "norm(A-Q*R) = " << normQ << std::endl;
 
     // Check Residure END

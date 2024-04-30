@@ -316,7 +316,7 @@ int main(int argc, const char ** argv)
 
     // normalize the result
     // |Id - Q^T * Q|_oo / n
-    ortho /= m;
+    // ortho /= m;
     cout << "Orthogonality: " << ortho << endl;
 
     delete [] Id;
@@ -393,7 +393,7 @@ int main(int argc, const char ** argv)
 
     // normalize the result
     // |A-QR|_oo / (|A|_oo * n)
-    error /= (normA * n);
+    // error /= (normA * n);
 
     cout << "Accuracy: " << error << endl;
 
