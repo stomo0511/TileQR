@@ -39,7 +39,9 @@ ifeq ($(UNAME),Darwin)
 	CXXFLAGS = -fopenmp -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
 endif
 
-OBJS = TileQR.o Check_Accuracy.o CoreBlas.o
+LOBJS = dgeqrf.o Check_Accuracy.o
+OBJS = TileQR.o CoreBlas.o
+
 
 # for Performance evaluation
 CXXFLAGS += -O3
@@ -51,7 +53,10 @@ CXXFLAGS += -O3
 # CXXFLAGS += -DTRACE
 # OBJS += trace.o
 
-all: TileQR
+all: dgeqrf TileQR
+
+dgeqrf: $(LOBJS)
+	$(CXX) $(CFLAGS) -o $@ $(LOBJS) $(BLAS_LIBS)
 
 TileQR : $(OBJS)
 	$(CXX) $(CFLAGS) -o $@ $(OBJS) $(PLASMA_LIBS) $(BLAS_LIBS) 
@@ -63,4 +68,4 @@ trace.o: trace.c
 	$(CXX) -O3 -c -o $@ $<
 
 clean:
-	rm -f *.o RL LL
+	rm -f *.o dgeqrf TileQR

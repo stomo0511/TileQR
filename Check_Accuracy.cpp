@@ -8,12 +8,7 @@
 #include <iostream>
 #include "Check_Accuracy.h"
 
-#ifndef __Test__Min__
-#define __Test__Min__
-
-#define min(a,b) (((a)<(b)) ? (a) : (b))
-
-#endif // __Test__Min__
+using namespace std;
 
 void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *mR )
 {
@@ -41,9 +36,9 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
     std::cout << "norm(I-Q*Q') = " << normQ << std::endl;
 
     // Check Orthogonarity END
-    ////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////
 
-    ////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////
     // Check Residure
     double* QR = new double[ M * N ];
     alpha = 1.0;
@@ -62,7 +57,7 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
     std::cout << "norm(A-Q*R) = " << normQ << std::endl;
 
     // Check Residure END
-    ////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////
 
     delete [] Id;
     delete [] Work;
