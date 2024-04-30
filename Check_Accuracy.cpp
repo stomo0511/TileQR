@@ -43,25 +43,18 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
 
     //////////////////////////////////////////////////////////////////////
     // Check Residure
-    double* QR = new double[ M * N ];
-    alpha = 1.0;
-    beta  = 0.0;
-
     Work = new double[ M ];
 
     // |A|_oo
     double normA = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', M, N, mA, M, Work);
 
-    // ToDo: A <- A - Q*R に変更
+    alpha = -1.0;
+    beta  =  1.0;
     cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 
-            M, N, M, alpha, mQ, M, mR, M, beta, QR, M);
+            M, N, M, alpha, mQ, M, mR, M, beta, mA, M);
         
-    for (int i = 0; i < M; i++)
-        for (int j = 0; j < N; j++)
-        QR[ i + j*M ] -= mA[ i + j*M ];
-
     double normQ = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', 
-                    M, N, QR, M, Work);
+                    M, N, mA, M, Work);
 
     // normalize the result
     // |A-QR|_oo / (|A|_oo * n)
@@ -73,6 +66,6 @@ void Check_Accuracy( const int M, const int N, double *mA, double *mQ, double *m
 
     delete [] Id;
     delete [] Work;
-    delete [] QR;
+    // delete [] QR;
 }
 
