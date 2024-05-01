@@ -7,19 +7,35 @@ ifeq ($(UNAME),Linux)
 		CXXFLAGS = -Nclang -Nlibomp -Kfast -Kopenmp
 		BLAS_LIBS = -SSL2BLAMP
 	else
-# Linux server
-		MKL_LIB_DIR = $(MKLROOT)/lib/intel64
-		MKL_INC_DIR = $(MKLROOT)/include
-		MKL_LIBS = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
-		
-		PLASMA_DIR = /opt/plasma
-		PLASMA_LIB_DIR = $(PLASMA_DIR)/lib
-		PLASMA_INC_DIR = $(PLASMA_DIR)/include
-		PLASMA_LIBS = -L$(PLASMA_LIB_DIR) -lplasma_core_blas
+# AOBA
+		ifeq ($(MYNAME),y01505)
+			MKL_LIB_DIR = $(MKLROOT)/lib/intel64
+			MKL_INC_DIR = $(MKLROOT)/include
+			MKL_LIBS = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
 
-		CXX = g++-9
-		CXXFLAGS = -DMKL -I$(MKL_INC_DIR) -I$(PLASMA_INC_DIR) -fopenmp
-		BLAS_LIBS = -L$(MKL_LIB_DIR) $(MKL_LIBS) -lpthread -lm -ldl
+			PLASMA_DIR = /uhome/y01505/plasma
+			PLASMA_LIB_DIR = $(PLASMA_DIR)/lib
+			PLASMA_INC_DIR = $(PLASMA_DIR)/include
+			PLASMA_LIBS = -L$(PLASMA_LIB_DIR) -lplasma_core_blas
+
+			CXX = clang++
+			CXXFLAGS =  -DMKL -I$(MKL_INC_DIR) -I$(PLASMA_INC_DIR) -fopenmp
+			BLAS_LIBS = -L$(MKL_LIB_DIR) $(MKL_LIBS) -lpthread -lm -ldl
+		else
+# Linux server
+			MKL_LIB_DIR = $(MKLROOT)/lib/intel64
+			MKL_INC_DIR = $(MKLROOT)/include
+			MKL_LIBS = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
+		
+			PLASMA_DIR = /opt/plasma
+			PLASMA_LIB_DIR = $(PLASMA_DIR)/lib
+			PLASMA_INC_DIR = $(PLASMA_DIR)/include
+			PLASMA_LIBS = -L$(PLASMA_LIB_DIR) -lplasma_core_blas
+
+			CXX = g++-9
+			CXXFLAGS = -DMKL -I$(MKL_INC_DIR) -I$(PLASMA_INC_DIR) -fopenmp
+			BLAS_LIBS = -L$(MKL_LIB_DIR) $(MKL_LIBS) -lpthread -lm -ldl
+		endif
 	endif
 endif
 ifeq ($(UNAME),Darwin)
@@ -47,7 +63,7 @@ OBJS = TileQR.o CoreBlas.o
 CXXFLAGS += -O3
 
 # for Debug
-# CXXFLAGS += -DDEBUG -g
+CXXFLAGS += -DDEBUG -g
 
 # for Trace
 # CXXFLAGS += -DTRACE
