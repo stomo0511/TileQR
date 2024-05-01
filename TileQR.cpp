@@ -16,13 +16,6 @@
 using namespace std;
 
 // Generate random matrix
-//
-// @param[in] seed: random seed
-// @param[in] m: row size of matrix
-// @param[in] n: col size of matrix
-// @param[out] A: (m x n) matrix
-// @param[in] lda: leading dimension of A
-//
 void Gen_rand_mat(const long int seed, const int m, const int n, double *A, const int lda)
 {
 	srand(seed);
@@ -33,12 +26,6 @@ void Gen_rand_mat(const long int seed, const int m, const int n, double *A, cons
 }
 
 // Show matrix
-//
-// @param[in] m: row size of matrix
-// @param[in] n: col size of matrix
-// @param[in] A: (m x n) matrix
-// @param[in] lda: leading dimension of A
-//
 void Show_mat(const int m, const int n, double *A, const int lda)
 {
   	for (int i=0; i<m; i++)
@@ -50,73 +37,6 @@ void Show_mat(const int m, const int n, double *A, const int lda)
 	cout << endl;
 }
 
-// Convert column major format to Tiled layout
-//
-void cm2ccrb(const int m, const int n, const int lda, const double *A, const int mb, const int nb, double* B)
-{
-   	const int nmb = (m % mb == 0) ? m/mb : m/mb+1;  // # of tile rows
-	const int nnb = (n % nb == 0) ? n/nb : n/nb+1;  // # of tile cols
-
-    for (int j=0; j<nnb; j++)
-    {
-        int jb = min(n-j*nb,nb);
-        for (int i=j; i<nmb; i++)
-        {
-            int ib = min(m-i*mb,mb);
-            const double* Aij = A+(j*nb*lda + i*mb);
-            double* Bij = B+(j*nb*m + i*mb*jb);
-
-            #pragma omp task depend(in: Aij[0:m*jb]) depend(out: Bij[0:ib*jb])
-            {
-                #ifdef TRACE
-                trace_cpu_start();
-                trace_label("Yellow", "Conv.");
-                #endif
-
-                for (int jj=0; jj<jb; jj++)
-                    for (int ii=0; ii<ib; ii++)
-                        Bij[ ii + jj*ib ] = Aij[ ii + jj*lda ];
-
-                #ifdef TRACE
-                trace_cpu_stop("Yellow");
-                #endif
-            }
-        }
-    }
-}
-
-void ccrb2cm(const int m, const int n, const int lda, double *A, const int mb, const int nb, const double* B)
-{
-   	const int nmb = (m % mb == 0) ? m/mb : m/mb+1;  // # of tile rows
-	const int nnb = (n % nb == 0) ? n/nb : n/nb+1;  // # of tile cols
-
-    for (int j=0; j<nnb; j++)
-    {
-        int jb = min(m-j*nb,nb);
-        for (int i=j; i<nmb; i++)
-        {
-            int ib = min(m-i*mb,mb);
-            double* Aij = A+(j*nb*lda + i*nb);
-            const double* Bij = B+(j*nb*lda + i*nb*jb);
-
-            #pragma omp task depend(in: Bij[0:ib*jb]) depend(out: Aij[0:m*jb])
-            {
-                #ifdef TRACE
-                trace_cpu_start();
-                trace_label("Violet", "Conv.");
-                #endif
-
-                for (int jj=0; jj<jb; jj++)
-                    for (int ii=0; ii<ib; ii++)
-                        Aij[ ii+jj*lda ] = Bij[ ii+jj*ib ];
-
-                #ifdef TRACE
-                trace_cpu_stop("Violet");
-                #endif
-            }
-        }
-    }
-}
 // Debug mode
 #define DEBUG
 
@@ -244,12 +164,12 @@ int main(int argc, const char ** argv)
             if (i==j)
             {
                 // Diagonal tiles are set to be identity matrix
-                LAPACKE_dlaset_work(LAPACK_COL_MAJOR, 'g', mbi, nbj, 0.0, 1.0, QT[i][j], mbi);
+                LAPACKE_dlaset(LAPACK_COL_MAJOR, 'g', mbi, nbj, 0.0, 1.0, QT[i][j], mbi);
             }
             else
             {
                 // Non-diagonal tiles are set to be zero matrix
-                LAPACKE_dlaset_work(LAPACK_COL_MAJOR, 'g', mbi, nbj, 0.0, 0.0, QT[i][j], mbi);
+                LAPACKE_dlaset(LAPACK_COL_MAJOR, 'g', mbi, nbj, 0.0, 0.0, QT[i][j], mbi);
             }
         }
     }

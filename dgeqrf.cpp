@@ -10,14 +10,12 @@
 #include <omp.h>
 #include <mkl.h>
 
-#include "Check_Accuracy.h"
-
 using namespace std;
 
 // Generate random LOWER matrix
-void Gen_rand_mat(const int m, const int n, double *A)
+void Gen_rand_mat(const long int seed, const int m, const int n, double *A)
 {
-	srand(20240417);
+	srand(seed);
 
     for (int j=0; j<n; j++)
 	    for (int i=0; i<m; i++)
@@ -25,15 +23,69 @@ void Gen_rand_mat(const int m, const int n, double *A)
 }
 
 // Show matrix
-void Show_mat(const int m, const int n, double *A)
+void Show_mat(const int m, const int n, double *A, const int lda)
 {
 	for (int i=0; i<m; i++)
     {
 		for (int j=0; j<n; j++)
-			cout << A[i + j*m] << ", ";
+            printf("% 5.4lf, ", A[i + j*lda]);
 		cout << endl;
 	}
 	cout << endl;
+}
+
+void Check_Accuracy( const int m, const int n, double *mA, double *mQ, double *mR )
+{
+    //////////////////////////////////////////////////////////////////////
+    // Check Orthogonarity
+
+    // Set Id to the identity matrix
+    int mn = min(m,n);
+
+    // Id: identity matrix
+    double* Id = new double[ mn * mn ];
+    LAPACKE_dlaset(LAPACK_COL_MAJOR, 'g', mn, mn, 0.0, 1.0, Id, mn);
+
+    double alpha = 1.0;
+    double beta  = -1.0;
+        
+    cblas_dsyrk(CblasColMajor, CblasUpper, CblasTrans, 
+            n, m, alpha, mQ, m, beta, Id, n);
+        
+    double ortho = LAPACKE_dlansy(LAPACK_COL_MAJOR, 'I', 'U', 
+                        mn, Id, mn);
+
+    // normalize the result
+    // |Id - Q^T * Q|_oo / n
+    // ortho /= mn;
+    std::cout << "norm(I-Q'*Q) = " << ortho << std::endl;
+
+    // Check Orthogonarity END
+    //////////////////////////////////////////////////////////////////////
+
+    //////////////////////////////////////////////////////////////////////
+    // Check Residure
+
+    // |A|_oo
+    double normA = LAPACKE_dlange(LAPACK_COL_MAJOR, 'I', m, n, mA, m);
+
+    alpha = -1.0;
+    beta  =  1.0;
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, 
+            m, n, m, alpha, mQ, m, mR, m, beta, mA, m);
+        
+    double normQ = LAPACKE_dlange(LAPACK_COL_MAJOR, 'I', 
+                    m, n, mA, m);
+
+    // normalize the result
+    // |A-QR|_oo / (|A|_oo * n)
+    // normQ /= (normA * N);
+    std::cout << "norm(A-Q*R) = " << normQ << std::endl;
+
+    // Check Residure END
+    //////////////////////////////////////////////////////////////////////
+
+    delete [] Id;
 }
 
 // Debug mode
@@ -58,10 +110,10 @@ int main(int argc, const char ** argv)
         return EXIT_FAILURE;
     }
 
-    const int m =  atoi(argv[1]);  // matrix size
+    const int m =  atoi(argv[1]);    // matrix size
 
     double *A = new double [m*m];    // Original matrix: A
-    Gen_rand_mat(m,m,A);             // Randomize elements of A
+    Gen_rand_mat(20240417, m, m, A); // Randomize elements of A
 
     double *T = new double [m];      // Contain scalers of elementary reflectors
 	
@@ -73,20 +125,10 @@ int main(int argc, const char ** argv)
 	#endif
 	////////// Debug mode //////////
 
-//    for (int i=0; i<m; i++)
-//     {
-//         for (int j=0; j<m; j++)
-//                 cout << A[i+j*m] << ", ";
-//         cout << endl;
-//     }
-//     cout << endl;
-
     // Timer start
     double time = omp_get_wtime();
 	
-    //////////////////////////////////////////////////////////////////////
     LAPACKE_dgeqrf(LAPACK_COL_MAJOR, m, m, A, m, T);
-    //////////////////////////////////////////////////////////////////////
 	
     // Timer stop
     time = omp_get_wtime() - time;
@@ -102,7 +144,7 @@ int main(int argc, const char ** argv)
                 R[i+j*m] = 0.0;
 
     // Regenerate orthogonal matrix Q
-    LAPACKE_dorgqr(LAPACK_COL_MAJOR, m, m, m, A, m, T);
+    assert(EXIT_SUCCESS == LAPACKE_dorgqr(LAPACK_COL_MAJOR, m, m, m, A, m, T));
 
     Check_Accuracy(m,m,OA,A,R);
     // // Check Accuracy END

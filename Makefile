@@ -39,7 +39,7 @@ ifeq ($(UNAME),Darwin)
 	CXXFLAGS = -fopenmp -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
 endif
 
-LOBJS = dgeqrf.o Check_Accuracy.o
+LOBJS = dgeqrf.o
 OBJS = TileQR.o CoreBlas.o
 
 
