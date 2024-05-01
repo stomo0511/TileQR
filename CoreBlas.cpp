@@ -26,8 +26,6 @@ using namespace std;
 void GEQRT( const int mb, const int nb, const int ib, 
     double *A, const int lda, double *T, const int ldt)
 {
-    assert( ib <= mb && ib <= nb  );
-
     const int NB = max(lda,ldt);
 	
     double* WORK = new double[ ib*NB ];
