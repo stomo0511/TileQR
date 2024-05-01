@@ -10,7 +10,7 @@ ifeq ($(UNAME),Linux)
 # Linux server
 		MKL_LIB_DIR = $(MKLROOT)/lib/intel64
 		MKL_INC_DIR = $(MKLROOT)/include
-		MKL_LIBS = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5
+		MKL_LIBS = -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp
 		
 		PLASMA_DIR = /opt/plasma
 		PLASMA_LIB_DIR = $(PLASMA_DIR)/lib
@@ -44,14 +44,14 @@ OBJS = TileQR.o CoreBlas.o
 
 
 # for Performance evaluation
-CXXFLAGS += -O3
+# CXXFLAGS += -O3
 
 # for Debug
 # CXXFLAGS += -DDEBUG -g
 
 # for Trace
-# CXXFLAGS += -DTRACE
-# OBJS += trace.o
+CXXFLAGS += -DTRACE
+OBJS += trace.o
 
 all: dgeqrf TileQR
 

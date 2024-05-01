@@ -37,12 +37,6 @@ void Show_mat(const int m, const int n, double *A, const int lda)
 	cout << endl;
 }
 
-// Debug mode
-#define DEBUG
-
-// Trace mode
-//#define TRACE
-
 #ifdef TRACE
 extern void trace_cpu_start();
 extern void trace_cpu_stop(const char *color);
@@ -113,19 +107,39 @@ int main(int argc, const char ** argv)
                 const int mbk = min(m-k*mb,mb);     // tile row size
 
                 #pragma omp task depend(inout:AT[k][k],TT[k][k])
-                GEQRT(mbk, mbk, ib, 
-                    AT[k][k], mbk, TT[k][k], ib);
-                // cout << "GEQRT[" << k << "][" << k << "]" << endl;
+                {
+                    #ifdef TRACE
+					trace_cpu_start();
+					trace_label("Red", "GEQRT");
+					#endif
+
+                    GEQRT(mbk, mbk, ib, 
+                        AT[k][k], mbk, TT[k][k], ib);
+
+                    #ifdef TRACE
+					trace_cpu_stop("Red");
+					#endif
+                }
 
                 for (int j=k+1; j<nnb; j++)
                 {
                     const int nbj = min(n-j*nb,nb); // tile col size
 
                     #pragma omp task depend(in:AT[k][k],TT[k][k]) depend(inout:AT[k][j])
-                    LARFB(PlasmaLeft, PlasmaTrans, 
-                        mbk, nbj, mbk, ib, 
-                        AT[k][k], mbk, TT[k][k], ib, AT[k][j], mbk);
-                    // cout << "LARFB[" << k << "][" << j << "]" << endl;
+                    {
+                        #ifdef TRACE
+						trace_cpu_start();
+						trace_label("Cyan", "LARFB");
+						#endif
+
+                        LARFB(PlasmaLeft, PlasmaTrans, 
+                            mbk, nbj, mbk, ib, 
+                            AT[k][k], mbk, TT[k][k], ib, AT[k][j], mbk);
+                        
+                        #ifdef TRACE
+						trace_cpu_stop("Cyan");
+						#endif
+                    }
                 }
 
                 for (int i=k+1; i<nmb; i++)
@@ -133,19 +147,39 @@ int main(int argc, const char ** argv)
                     const int mbi = min(m-i*mb,mb); // tile row size
 
                     #pragma omp task depend(in:AT[k][k],TT[k][k]) depend(inout:AT[k][k],AT[i][k],TT[i][k])
-                    TSQRT(mbk, mbk, mbi, mbk, ib, 
-                        AT[k][k], mbk, AT[i][k], mbi, TT[i][k], ib);
-                    // cout << "TSQRT[" << i << "][" << k << "]" << endl;
+                    {
+                        #ifdef TRACE
+						trace_cpu_start();
+						trace_label("Green", "TSQRT");
+	 					#endif
+
+                        TSQRT(mbk, mbk, mbi, mbk, ib, 
+                            AT[k][k], mbk, AT[i][k], mbi, TT[i][k], ib);
+                        
+                        #ifdef TRACE
+						trace_cpu_stop("Green");
+						#endif
+                    }
                     
                     for (int j=k+1; j<nnb; j++)
                     {
                         const int nbj = min(n-j*nb,nb); // tile col size
 
                         #pragma omp task depend(in:AT[i][k],TT[i][k]) depend(inout:AT[k][j],AT[i][j])
-                        SSRFB(PlasmaLeft, PlasmaTrans, 
-                            mbk, nbj, mbi, nbj, mbk, ib,
-                            AT[i][k], mbi, TT[i][k], ib, AT[k][j], mbk, AT[i][j], mbi);
-                        // cout << "SSRFB[" << i << "][" << j << "]" << endl;
+                        {
+                            #ifdef TRACE
+							trace_cpu_start();
+							trace_label("Blue", "SSRFB");
+							#endif
+
+                            SSRFB(PlasmaLeft, PlasmaTrans, 
+                                mbk, nbj, mbi, nbj, mbk, ib,
+                                AT[i][k], mbi, TT[i][k], ib, AT[k][j], mbk, AT[i][j], mbi);
+                            
+                            #ifdef TRACE
+							trace_cpu_stop("Blue");
+							#endif
+                        }
                     }
                 }
             }
