@@ -50,46 +50,44 @@ int main(int argc, const char ** argv)
     assert(argc > 3);
 
     const int m =  atoi(argv[1]);   // matrix size
-    const int n = m;                // A should be square
     const int lda = m;              // leading dimension of A
-    const int mb = atoi(argv[2]);   // tile size
-    const int nb = mb;              // square tile
-    const int ib = atoi(argv[3]);   // inner blocking size
+    const int nb = atoi(argv[2]);   // tile size
+    const int bs = atoi(argv[3]);   // inner blocking size
 
-    assert(m >= mb);
-    assert(mb >= ib);
+    assert(m >= nb);
+    assert(nb >= bs);
 	
     #ifdef DEBUG
-    cout << "m = " << m << ", mb = " << mb << ", ib = " << ib << endl;
+    cout << "m = " << m << ", nb = " << nb << ", bs = " << bs << endl;
     cout << "# of threads = " << omp_get_max_threads() << endl;
     #endif
 
     //////////////////////////////////////////////////////////////////////
     // Allocate memory for matrices
-    double *A = new double [m * n]; // A: matrix
-    Gen_rand_mat(20240417, m, n, A, lda);
+    double *A = new double [m * m];  // A: matrix
+    Gen_rand_mat(20240417, m, m, A, lda);
 
-   	const int nmb = (m % mb == 0) ? m/mb : m/mb+1;  // # of tile rows
-	const int nnb = (n % nb == 0) ? n/nb : n/nb+1;  // # of tile cols
+   	const int p = (m % nb == 0) ? m/nb : m/nb+1;  // # of tile rows
 	
-    double *AT[nmb][nnb];          // AT: Tiled matrix
-    double *TT[nmb][nnb];          // TT: Tiled Householder matrix
-    for (int j=0; j<nnb; j++)
+    double *AT[p][p];  // AT: Tiled matrix
+    double *TT[p][p];  // TT: Tiled Householder matrix
+    for (int j=0; j<p; j++)
     {
-        const int nbj = min(n-j*nb,nb);     // tile col size
+        const int jb = min(m-j*nb,nb);     // tile col size
 
         #pragma omp parallel for
-        for (int i=0; i<nmb; i++)
+        for (int i=0; i<p; i++)
         {
-            const int mbi = min(m-i*mb,mb); // tile row size
-            AT[i][j] = new double [mbi * nbj];
-            TT[i][j] = new double [ib * nbj];
+            const int ib = min(m-i*nb,nb); // tile row size
+
+            AT[i][j] = new double [ib * jb];
+            TT[i][j] = new double [bs * jb];
 
             // Copy elements of A to AT
-            const double* Aij = A+(j*nb*lda + i*mb);
-            for (int jj=0; jj<nbj; jj++)
-                for (int ii=0; ii<mbi; ii++)
-                        AT[i][j][ ii + jj*mbi ] = Aij[ ii + jj*lda ];
+            const double* Aij = A+(j*nb*lda + i*nb);
+            for (int jj=0; jj<jb; jj++)
+                for (int ii=0; ii<ib; ii++)
+                        AT[i][j][ ii + jj*ib ] = Aij[ ii + jj*lda ];
         }
     }
 
@@ -102,44 +100,40 @@ int main(int argc, const char ** argv)
     {
         #pragma omp master
         {
-            for (int k=0; k<min(nmb,nnb); k++)
+            for (int k=0; k<p; k++)
             {
-                const int mbk = min(m-k*mb,mb);     // tile row size
+                const int kb = min(m-k*nb,nb);     // tile row size
 
                 #pragma omp task depend(inout:AT[k][k],TT[k][k])
-                GEQRT(mbk, mbk, ib, 
-                    AT[k][k], mbk, TT[k][k], ib);
-                // cout << "GEQRT[" << k << "][" << k << "]" << endl;
+                GEQRT(kb, kb, bs, 
+                    AT[k][k], kb, TT[k][k], bs);
 
-                for (int j=k+1; j<nnb; j++)
+                for (int j=k+1; j<p; j++)
                 {
-                    const int nbj = min(n-j*nb,nb); // tile col size
+                    const int jb = min(m-j*nb,nb); // tile col size
 
                     #pragma omp task depend(in:AT[k][k],TT[k][k]) depend(inout:AT[k][j])
                     LARFB(PlasmaLeft, PlasmaTrans, 
-                        mbk, nbj, mbk, ib, 
-                        AT[k][k], mbk, TT[k][k], ib, AT[k][j], mbk);
-                    // cout << "LARFB[" << k << "][" << j << "]" << endl;
+                        kb, jb, kb, bs, 
+                        AT[k][k], kb, TT[k][k], bs, AT[k][j], kb);
                 }
 
-                for (int i=k+1; i<nmb; i++)
+                for (int i=k+1; i<p; i++)
                 {
-                    const int mbi = min(m-i*mb,mb); // tile row size
+                    const int ib = min(m-i*nb,nb); // tile row size
 
                     #pragma omp task depend(in:AT[k][k],TT[k][k]) depend(inout:AT[k][k],AT[i][k],TT[i][k])
-                    TSQRT(mbk, mbk, mbi, mbk, ib, 
-                        AT[k][k], mbk, AT[i][k], mbi, TT[i][k], ib);
-                    // cout << "TSQRT[" << i << "][" << k << "]" << endl;
+                    TSQRT(kb, kb, ib, kb, bs, 
+                        AT[k][k], kb, AT[i][k], ib, TT[i][k], bs);
                     
-                    for (int j=k+1; j<nnb; j++)
+                    for (int j=k+1; j<p; j++)
                     {
-                        const int nbj = min(n-j*nb,nb); // tile col size
+                        const int jb = min(m-j*nb,nb); // tile col size
 
                         #pragma omp task depend(in:AT[i][k],TT[i][k]) depend(inout:AT[k][j],AT[i][j])
                         SSRFB(PlasmaLeft, PlasmaTrans, 
-                            mbk, nbj, mbi, nbj, mbk, ib,
-                            AT[i][k], mbi, TT[i][k], ib, AT[k][j], mbk, AT[i][j], mbi);
-                        // cout << "SSRFB[" << i << "][" << j << "]" << endl;
+                            kb, jb, ib, jb, kb, bs,
+                            AT[i][k], ib, TT[i][k], bs, AT[k][j], kb, AT[i][j], ib);
                     }
                 }
             }
@@ -150,85 +144,80 @@ int main(int argc, const char ** argv)
 
     // Timer stop
     time = omp_get_wtime() - time;
-    cout << m << ", " << nb << ", " << ib << ", " << time << endl;
-
-    // Show_mat(m, n, A, lda);
+    cout << m << ", " << nb << ", " << bs << ", " << time << endl;
 
     //////////////////////////////////////////////////////////////////////
     #ifdef DEBUG
-    double *QT[nmb][nnb];          // QT: Tiled matrix
+    double *QT[p][p];          // QT: Tiled matrix
 
-    // cout << "nmb = " << nmb << ", nnb = " << nnb << endl;
-    for (int j=0; j<nnb; j++)
+    for (int j=0; j<p; j++)
     {
-        const int nbj = min(n-j*nb,nb);     // tile col size
+        const int jb = min(m-j*nb,nb);     // tile col size
 
         #pragma omp parallel for
-        for (int i=0; i<nmb; i++)
+        for (int i=0; i<p; i++)
         {
-            const int mbi = min(m-i*mb,mb); // tile row size
-            QT[i][j] = new double [mbi * nbj];
+            const int ib = min(m-i*nb,nb); // tile row size
+            QT[i][j] = new double [ib * jb];
 
             if (i==j)
             {
                 // Diagonal tiles are set to be identity matrix
-                assert(EXIT_SUCCESS == LAPACKE_dlaset(LAPACK_COL_MAJOR, 'g', mbi, nbj, 0.0, 1.0, QT[i][j], mbi));
+                assert(EXIT_SUCCESS == LAPACKE_dlaset(LAPACK_COL_MAJOR, 'g', ib, jb, 0.0, 1.0, QT[i][j], ib));
             }
             else
             {
                 // Non-diagonal tiles are set to be zero matrix
-                assert(EXIT_SUCCESS == LAPACKE_dlaset(LAPACK_COL_MAJOR, 'g', mbi, nbj, 0.0, 0.0, QT[i][j], mbi));
+                assert(EXIT_SUCCESS == LAPACKE_dlaset(LAPACK_COL_MAJOR, 'g', ib, jb, 0.0, 0.0, QT[i][j], ib));
             }
         }
     }
 
     // Make otrhogonal tiled matrix QT from AT and TT
-    for (int k = min(nmb,nnb)-1; k>=0; k--)
+    for (int k = p-1; k>=0; k--)
     {
-        const int mbk = min(m-k*mb,mb);     // tile row size
+        const int kb = min(m-k*nb,nb);     // tile row size
 
-        for (int i=nmb-1; i>k; i--)
+        for (int i=p-1; i>k; i--)
         {
-            const int mbi = min(m-i*mb,mb); // tile row size
+            const int ib = min(m-i*nb,nb); // tile row size
 
-            for (int j=k; j<nnb; j++)
+            for (int j=k; j<p; j++)
             {
-                const int nbj = min(n-j*nb,nb); // tile col size
+                const int jb = min(m-j*nb,nb); // tile col size
 
                 SSRFB(PlasmaLeft, PlasmaNoTrans, 
-                    mbk, nbj, mbi, nbj, mbk, ib,
-                    AT[i][k], mbi, TT[i][k], ib, QT[k][j], mbk, QT[i][j], mbi);
-                // cout << "SSRFB[" << i << "][" << j << "]" << endl;
+                    kb, jb, ib, jb, kb, bs,
+                    AT[i][k], ib, TT[i][k], bs, QT[k][j], kb, QT[i][j], ib);
             }
         }
-        for (int j=k; j<nnb; j++)
+        for (int j=k; j<p; j++)
         {
-            const int nbj = min(n-j*nb,nb); // tile col size
+            const int jb = min(m-j*nb,nb); // tile col size
 
             LARFB(PlasmaLeft, PlasmaNoTrans, 
-                mbk, nbj, mbk, ib, 
-                AT[k][k], mbk, TT[k][k], ib, QT[k][j], mbk);
-            // cout << "LARFB[" << k << "][" << j << "]" << endl;
+                kb, jb, kb, bs, 
+                AT[k][k], kb, TT[k][k], bs, QT[k][j], kb);
         }
     }
 
     //////////////////////////////////////////////////////////////////////
     // Check orthogonality of QT
     double *Q = new double [m * m]; // Q: orthogonal matrix
-    for (int j=0; j<nnb; j++)
+    for (int j=0; j<p; j++)
     {
-        const int nbj = min(n-j*nb,nb);     // tile col size
+        const int jb = min(m-j*nb,nb);     // tile col size
 
         #pragma omp parallel for
-        for (int i=0; i<nmb; i++)
+        for (int i=0; i<p; i++)
         {
-            const int mbi = min(m-i*mb,mb); // tile row size
+            const int ib = min(m-i*nb,nb); // tile row size
 
             // Copy elements of QT to Q
-            double* Qij = Q+(j*nb*lda + i*mb);
-            for (int jj=0; jj<nbj; jj++)
-                for (int ii=0; ii<mbi; ii++)
-                        Qij[ ii + jj*lda ] = QT[i][j][ ii + jj*mbi ];
+            double* Qij = Q+(j*nb*lda + i*nb);
+            for (int jj=0; jj<jb; jj++)
+                for (int ii=0; ii<ib; ii++)
+                        Qij[ ii + jj*lda ] = QT[i][j][ ii + jj*ib ];
         }
     }
 
@@ -255,86 +244,83 @@ int main(int argc, const char ** argv)
     // Check the accuracy of A - Q * R
 
     // Upper triangular matrix R.
-    double *R = new double [m * n]; // R: upper triangular matrix
+    double *R = new double [m * m]; // R: upper triangular matrix
 
     // Copy the upper triangular tiles of AT to R
-    for (int j=0; j<nnb; j++)
+    for (int j=0; j<p; j++)
     {
-        const int nbj = min(n-j*nb,nb);     // tile col size
+        const int jb = min(m-j*nb,nb);     // tile col size
 
         #pragma omp parallel for
-        for (int i=0; i<nmb; i++)
+        for (int i=0; i<p; i++)
         {
-            const int mbi = min(m-i*mb,mb); // tile row size
-            double* Rij = R+(j*nb*lda + i*mb);
+            const int ib = min(m-i*nb,nb); // tile row size
+            double* Rij = R+(j*nb*lda + i*nb);
 
             if (j>=i)          // lower part
             {
                 if (j==i)
                 {
-                    // cout << "(" << i << "," << j << ")" << endl;
-                    for (int jj=0; jj<nbj; jj++)
-                        for (int ii=0; ii<mbi; ii++)
+                    for (int jj=0; jj<jb; jj++)
+                        for (int ii=0; ii<ib; ii++)
                             if (jj >= ii)
-                                Rij[ ii + jj*lda ] = AT[i][j][ ii + jj*mbi ];
+                                Rij[ ii + jj*lda ] = AT[i][j][ ii + jj*ib ];
                             else
                                 Rij[ ii + jj*lda ] = 0.0;
                 }
                 else
                 {
-                    // cout << "(" << i << "," << j << ")" << endl;
-                    for (int jj=0; jj<nbj; jj++)
-                        for (int ii=0; ii<mbi; ii++)
-                            Rij[ ii + jj*lda ] = AT[i][j][ ii + jj*mbi ];
+                    for (int jj=0; jj<jb; jj++)
+                        for (int ii=0; ii<ib; ii++)
+                            Rij[ ii + jj*lda ] = AT[i][j][ ii + jj*ib ];
                 }
             }
             else
             {
-                // cout << "(" << i << "," << j << ")" << endl;
-                for (int jj=0; jj<nbj; jj++)
-                        for (int ii=0; ii<mbi; ii++)
+                for (int jj=0; jj<jb; jj++)
+                        for (int ii=0; ii<ib; ii++)
                             Rij[ ii + jj*lda ] = 0.0;
             }
         }
     }
 
-    for (int j=0; j<nnb; j++)
+    for (int j=0; j<p; j++)
     {
-        const int nbj = min(n-j*nb,nb);     // tile col size
+        const int jb = min(m-j*nb,nb);     // tile col size
 
         #pragma omp parallel for
-        for (int i=0; i<nmb; i++)
+        for (int i=0; i<p; i++)
         {
-            const int mbi = min(m-i*mb,mb); // tile row size
+            const int ib = min(m-i*nb,nb); // tile row size
 
             // Copy elements of QT to Q
-            double* Qij = Q+(j*nb*lda + i*mb);
-            for (int jj=0; jj<nbj; jj++)
-                for (int ii=0; ii<mbi; ii++)
-                        Qij[ ii + jj*lda ] = QT[i][j][ ii + jj*mbi ];
+            double* Qij = Q+(j*nb*lda + i*nb);
+            for (int jj=0; jj<jb; jj++)
+                for (int ii=0; ii<ib; ii++)
+                        Qij[ ii + jj*lda ] = QT[i][j][ ii + jj*ib ];
         }
     }
 
     // |A|_oo
-    double normA = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', m, n, A, lda, work);
+    double normA = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', m, m, A, lda, work);
 
     // Compute A - Q*R.
-    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, m, n, m, 1.0, Q, lda, R, lda, -1.0, A, lda);
+    cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, m, m, m, 1.0, Q, lda, R, lda, -1.0, A, lda);
 
     // |A - Q*R|_oo
-    double error = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', m, n, A, lda, work);
+    double error = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', m, m, A, lda, work);
 
     // normalize the result
-    // |A-QR|_oo / (|A|_oo * n)
-    // error /= (normA * n);
+    // |A-QR|_oo / (|A|_oo * m)
+    // error /= (normA * m);
 
     cout << "Accuracy: " << error << endl;
 
     delete [] work;
     delete [] Q;
 
-    for (int j=0; j<nnb; j++)
-        for (int i=0; i<nmb; i++)
+    for (int j=0; j<p; j++)
+        for (int i=0; i<p; i++)
         {
             delete [] QT[i][j];
         }
@@ -342,8 +328,8 @@ int main(int argc, const char ** argv)
     #endif
     //////////////////////////////////////////////////////////////////////
 
-    for (int j=0; j<nnb; j++)
-        for (int i=0; i<nmb; i++)
+    for (int j=0; j<p; j++)
+        for (int i=0; i<p; i++)
         {
             delete [] AT[i][j];
             delete [] TT[i][j];
