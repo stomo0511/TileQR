@@ -88,12 +88,6 @@ void Check_Accuracy( const int m, const int n, double *mA, double *mQ, double *m
     delete [] Id;
 }
 
-// Debug mode
-#define DEBUG
-
-// Trace mode
-//#define TRACE
-
 #ifdef TRACE
 extern void trace_cpu_start();
 extern void trace_cpu_stop(const char *color);
