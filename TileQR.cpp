@@ -37,12 +37,6 @@ void Show_mat(const int m, const int n, double *A, const int lda)
 	cout << endl;
 }
 
-// Debug mode
-#define DEBUG
-
-// Trace mode
-//#define TRACE
-
 #ifdef TRACE
 extern void trace_cpu_start();
 extern void trace_cpu_stop(const char *color);
