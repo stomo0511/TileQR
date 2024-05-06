@@ -32,7 +32,7 @@ ifeq ($(UNAME),Linux)
 			PLASMA_INC_DIR = $(PLASMA_DIR)/include
 			PLASMA_LIBS = -L$(PLASMA_LIB_DIR) -lplasma_core_blas
 
-			CXX = g++-9
+			CXX = mpic++
 			CXXFLAGS = -DMKL -I$(MKL_INC_DIR) -I$(PLASMA_INC_DIR) -fopenmp
 			BLAS_LIBS = -L$(MKL_LIB_DIR) $(MKL_LIBS) -lpthread -lm -ldl
 		endif
@@ -55,11 +55,10 @@ ifeq ($(UNAME),Darwin)
 	CXXFLAGS = -fopenmp -I$(BLAS_INC_DIR) -I$(PLASMA_INC_DIR)
 endif
 
-OBJS = TileQR.o CoreBlas.o
-
+OBJS = TileQR.o CoreBlas.o detach.o
 
 # for Performance evaluation
-CXXFLAGS += -O3
+# CXXFLAGS += -O3
 
 # for Debug
 CXXFLAGS += -DDEBUG -g
@@ -75,6 +74,9 @@ TileQR : $(OBJS)
 
 .cpp.o :
 	$(CXX) $(CXXFLAGS) -c $<
+
+detach.o: detach.cpp mpi-detach.h
+	$(CXX) $(CXX_FLAGS) -DOMPI_SKIP_MPICXX=1 -c detach.cpp -g
 
 trace.o: trace.c
 	$(CXX) -O3 -c -o $@ $<

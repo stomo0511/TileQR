@@ -153,6 +153,12 @@ static double EventStartThread[MAX_THREADS][MAX_THREAD_EVENTS];
 static double EventStopThread [MAX_THREADS][MAX_THREAD_EVENTS];
 static int    EventColorThread[MAX_THREADS][MAX_THREAD_EVENTS];
 
+static int MyRank;
+void trace_getrank(const int myrank)
+{
+    MyRank = myrank;
+}
+
 //------------------------------------------------------------------------------
 // https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function
 static inline unsigned int color_index(const char *str)
@@ -216,7 +222,7 @@ static void trace_finish()
     double vscale = IMAGE_HEIGHT / (NumThreads + 1);
 
     char file_name[32];
-    snprintf(file_name, 32, "trace_%ld.svg", (unsigned long int)time(NULL));
+    snprintf(file_name, 32, "trace_%d_%ld.svg", MyRank, (unsigned long int)time(NULL));
     FILE *trace_file = fopen(file_name, "w");
     assert(trace_file != NULL);
 
