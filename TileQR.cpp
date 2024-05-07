@@ -140,7 +140,7 @@ int main(int argc, char ** argv)
     {
         const int jb = min(m-j*nb,nb);     // tile col size
 
-        #pragma omp parallel for
+        // #pragma omp parallel for
         for (int i=0; i<p; i++)
         {
             const int ib = min(m-i*nb,nb); // tile row size
@@ -437,7 +437,7 @@ int main(int argc, char ** argv)
                                 double *ATT = new double[(ib+bs)*kb];    // private 宣言で共有変数にできるかも（要確認）
 
     							MPI_Recv(ATT, (ib+bs)*kb, MPI_DOUBLE, block_rank[i + k*p], i+k*p, MPI_COMM_WORLD, &stat);
-                                cout << "Recv A[" << i << "][" << k << "], and T[" << i << "," << k << "] on rank=" << myrank << endl;
+                                // cout << "Recv A[" << i << "][" << k << "], and T[" << i << "," << k << "] on rank=" << myrank << endl;
                                                         
                                 cblas_dcopy(ib*kb, ATT, 1, AT[i][k], 1);
                                 cblas_dcopy(bs*kb, ATT+ib*kb, 1, TT[i][k], 1);
@@ -465,14 +465,12 @@ int main(int argc, char ** argv)
                         // SSRFB Send task
                         if (block_rank[i + j*p] == myrank)
                         {
-                            // Send A[k][j] to i-direction
                         }
 
                         ///////////////////////////////////////////////////////////////
                         // SSRFB Recv task
                         if (block_rank[i + j*p] != myrank)
                         {
-                            // Recv A[k][j] from the ranks of tile A[i][j]
                         }
                     }
                 }
@@ -499,13 +497,13 @@ int main(int argc, char ** argv)
 
 			if (block_rank[i + j*p] == myrank)
             {
-				// MPI_Bcast(AT[i][j], ib*jb, MPI_DOUBLE, myrank, MPI_COMM_WORLD);
-                // MPI_Bcast(TT[i][j], bs*jb, MPI_DOUBLE, myrank, MPI_COMM_WORLD);
+				MPI_Bcast(AT[i][j], ib*jb, MPI_DOUBLE, myrank, MPI_COMM_WORLD);
+                MPI_Bcast(TT[i][j], bs*jb, MPI_DOUBLE, myrank, MPI_COMM_WORLD);
             }
 			else
             {
-				// MPI_Bcast(AT[i][j], ib*jb, MPI_DOUBLE, block_rank[i + j*p], MPI_COMM_WORLD);
-                // MPI_Bcast(TT[i][j], bs*jb, MPI_DOUBLE, block_rank[i + j*p], MPI_COMM_WORLD);
+				MPI_Bcast(AT[i][j], ib*jb, MPI_DOUBLE, block_rank[i + j*p], MPI_COMM_WORLD);
+                MPI_Bcast(TT[i][j], bs*jb, MPI_DOUBLE, block_rank[i + j*p], MPI_COMM_WORLD);
             }
 		}
 	}
@@ -567,14 +565,13 @@ int main(int argc, char ** argv)
             }
         }
 
-        //////////////////////////////////////////////////////////////////////
-        // Check orthogonality of QT
+        // Copy tiled matrix QT to CM matrix Q
         double *Q = new double [m * m]; // Q: orthogonal matrix
         for (int j=0; j<p; j++)
         {
             const int jb = min(m-j*nb,nb);     // tile col size
 
-            #pragma omp parallel for
+            // #pragma omp parallel for
             for (int i=0; i<p; i++)
             {
                 const int ib = min(m-i*nb,nb); // tile row size
@@ -583,10 +580,12 @@ int main(int argc, char ** argv)
                 double* Qij = Q+(j*nb*lda + i*nb);
                 for (int jj=0; jj<jb; jj++)
                     for (int ii=0; ii<ib; ii++)
-                            Qij[ ii + jj*lda ] = QT[i][j][ ii + jj*ib ];
+                        Qij[ ii + jj*lda ] = QT[i][j][ ii + jj*ib ];
             }
         }
 
+        //////////////////////////////////////////////////////////////////////
+        // Check orthogonality of QT
         double *Id = new double [m * m]; // I: identity matrix
         assert(EXIT_SUCCESS == LAPACKE_dlaset_work(LAPACK_COL_MAJOR, 'g', m, m, 0.0, 1.0, Id, lda));
 
@@ -602,7 +601,7 @@ int main(int argc, char ** argv)
         // normalize the result
         // |Id - Q^T * Q|_oo / n
         // ortho /= m;
-        cout << "Orthogonality: " << ortho << endl;
+        cout << "|I - Q'Q|_oo =" << ortho << endl;
 
         delete [] Id;
 
@@ -623,7 +622,7 @@ int main(int argc, char ** argv)
                 const int ib = min(m-i*nb,nb); // tile row size
                 double* Rij = R+(j*nb*lda + i*nb);
 
-                if (j>=i)          // lower part
+                if (j>=i)          // upper part
                 {
                     if (j==i)
                     {
@@ -644,11 +643,13 @@ int main(int argc, char ** argv)
                 else
                 {
                     for (int jj=0; jj<jb; jj++)
-                            for (int ii=0; ii<ib; ii++)
-                                Rij[ ii + jj*lda ] = 0.0;
+                        for (int ii=0; ii<ib; ii++)
+                            Rij[ ii + jj*lda ] = 0.0;
                 }
             }
         }
+
+        Show_mat(m, m, R, lda);
 
         for (int j=0; j<p; j++)
         {
@@ -663,10 +664,12 @@ int main(int argc, char ** argv)
                 double* Qij = Q+(j*nb*lda + i*nb);
                 for (int jj=0; jj<jb; jj++)
                     for (int ii=0; ii<ib; ii++)
-                            Qij[ ii + jj*lda ] = QT[i][j][ ii + jj*ib ];
+                        Qij[ ii + jj*lda ] = QT[i][j][ ii + jj*ib ];
             }
         }
 
+        Show_mat(m, m, Q, lda);
+        
         // |A|_oo
         double normA = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', m, m, A, lda, work);
 
@@ -680,7 +683,7 @@ int main(int argc, char ** argv)
         // |A-QR|_oo / (|A|_oo * m)
         // error /= (normA * m);
 
-        cout << "Accuracy: " << error << endl;
+        cout << "|A - Q*R|_oo =" << error << endl;
 
         delete [] work;
         delete [] Q;
