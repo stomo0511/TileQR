@@ -8,8 +8,14 @@
 #include <cstdlib>
 #include <cassert>
 #include <omp.h>
-#include <mkl.h>
 #include <plasma_core_blas.h>
+
+#ifdef MKL
+#include <mkl.h>
+#else
+#include <cblas.h>
+#include <lapacke.h>
+#endif
 
 #include "CoreBlas.h"
 

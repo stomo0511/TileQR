@@ -8,7 +8,13 @@
 #include <cstdlib>
 #include <cassert>
 #include <omp.h>
+
+#ifdef MKL
 #include <mkl.h>
+#else
+#include <cblas.h>
+#include <lapacke.h>
+#endif
 
 using namespace std;
 
