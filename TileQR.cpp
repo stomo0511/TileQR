@@ -191,66 +191,48 @@ int main(int argc, char ** argv)
 				// GEQRT Send task
                 if (block_rank[k + k*p] == myrank)
                 {
-                    int *send_flags = new int[nprocs];
-
+                    ///////////////////////////////////////////////////////////
                     // Send tiles A[k][k] and T[k][k] to j-direction
-                    // Initialize send_flags
-                    for (int ii=0; ii<nprocs; ii++)
-                        send_flags[ii] = 0;
-                        
-                    for (int jj = k + 1; jj < p; jj++)
-                    {
-                        if (!send_flags[block_rank[k + jj*p]])
-                            send_flags[block_rank[k + jj*p]] = 1;
-                    }
-
                     for (int dst=0; dst<nprocs; dst++)
                     {
-                        if (send_flags[dst] && dst != myrank)
+                        int send_flag = 0;
+
+                        for (int jj=k+1; jj<p; jj++)
+                        {
+                            if (dst == block_rank[k + jj*p])
+                            {
+                                send_flag = 1;
+                                break;
+                            }
+                        }
+                        if (send_flag && dst != myrank)
                         {
                             // #pragma omp task depend(in: AT[k][k], TT[k][k])
                             {
                                 double *ATT = new double[(kb+bs)*kb];    // private 宣言で共有変数にできるかも（要確認）
                                 
-                                // Show_mat(kb, kb, AT[k][k], kb);
-                                // Show_mat(bs, kb, TT[k][k], bs);
-
                                 cblas_dcopy(kb*kb, AT[k][k], 1, ATT, 1);
                                 cblas_dcopy(bs*kb, TT[k][k], 1, ATT+kb*kb, 1);
 
-                                // cout << "Send ATT from " << myrank << " to " << dst << " with tag " << k+k*p << endl;
+                                
                                 MPI_Send(ATT, (kb+bs)*kb, MPI_DOUBLE, dst, k+k*p, MPI_COMM_WORLD);
+                                cout << "G1: Send A&T[" << k << "][" << k << "] from rank=" << myrank << " to rank=" << dst << " with tag " << k+k*p << endl;
 
                                 delete [] ATT;
                             }
                         }
                     }
 
-                    // Send tiles A[k][k] to i-direction
-                    // Initialize send_flags
-                    for (int ii=0; ii<nprocs; ii++)
-                        send_flags[ii] = 0;
-                        
-                    for (int ii = k + 1; ii < p; ii++)
+                    ///////////////////////////////////////////////////////////
+                    // Send tiles A[k][k] to block_rank[k+1][k]
+                    // #pragma omp task depend(in: AT[k][k])
                     {
-                        if (!send_flags[block_rank[ii + k*p]])
-                            send_flags[block_rank[ii + k*p]] = 1;
-                    }
-
-                    for (int dst=0; dst<nprocs; dst++)
-                    {
-                        if (send_flags[dst] && dst != myrank)
+                        if ((k+1 < p) && block_rank[k+1 + k*p] != myrank)
                         {
-                            // #pragma omp task depend(in: AT[k][k])
-                            {
-                                // Show_mat(kb, kb, AT[k][k], kb);
-
-                                MPI_Send(AT[k][k], kb*kb, MPI_DOUBLE, dst, 100000+(k+k*p), MPI_COMM_WORLD);
-                            }
+                            MPI_Send(AT[k][k], kb*kb, MPI_DOUBLE, block_rank[k+1 + k*p], 100000+(k+k*p), MPI_COMM_WORLD);
+                            cout << "G2: Send A[" << k << "][" << k << "] from rank=" << myrank << " to rank=" << block_rank[k+1 + k*p] << " with tag " << 100000+k+k*p << endl;
                         }
                     }
-
-                    delete [] send_flags;
                 } // GEQRT Send task End
 
                 ///////////////////////////////////////////////////////////////
@@ -259,13 +241,16 @@ int main(int argc, char ** argv)
                 {
                     int recv_flag = 0;
 
+                    ///////////////////////////////////////////////////////////
                     // Recv tiles A[k][k] and T[k][k] from the ranks of tile A[k][k]
-					for (int jj = k + 1; jj < p; jj++)
+					for (int jj=k+1; jj < p; jj++)
 					{
 						if (myrank == block_rank[k + jj*p])
+                        {
 							recv_flag = 1;
+                            break;
+                        }
 					}
-
                     if (recv_flag)
 					{
 						// #pragma omp task depend(out: AT[k][k], TT[k][k])
@@ -274,40 +259,29 @@ int main(int argc, char ** argv)
 
                             double *ATT = new double[(kb+bs)*kb];    // private 宣言で共有変数にできるかも（要確認）
 
-                            // cout << "Recv ATT from " << block_rank[k + k*p] << " to " << myrank << " with tag " << k+k*p << endl;
 							MPI_Recv(ATT, (kb+bs)*kb, MPI_DOUBLE, block_rank[k + k*p], k+k*p, MPI_COMM_WORLD, &stat);
                                                         
                             cblas_dcopy(kb*kb, ATT, 1, AT[k][k], 1);
                             cblas_dcopy(bs*kb, ATT+kb*kb, 1, TT[k][k], 1);
 
                             delete [] ATT;
-                            cout << "Recv A[" << k << "][" << k << "], and T[" << k << "," << k << "] on rank=" << myrank << endl;
 
-                            // Show_mat(kb, kb, AT[k][k], kb);
-                            // Show_mat(bs, kb, TT[k][k], bs);
+                            cout << "G1: Recv A&T[" << k << "][" << k << "] from rank=" << block_rank[k + k*p] << " on rank=" << myrank << " with tag " << k+k*p << endl;
 						}
                     }
 
-   					recv_flag = 0;
-
+                    ///////////////////////////////////////////////////////////
                     // Recv tiles A[k][k] from the ranks of tile A[k][k]
- 					for (int ii = k + 1; ii < p; ii++)
-    				{
-	    				if (myrank == block_rank[ii + k*p])
-		    				recv_flag = 1;
-			    	}
+                    // #pragma omp task depend(in: AT[k][k])
+                    {
+                        MPI_Status stat;
 
-                    if (recv_flag)
-					{
-						// #pragma omp task depend(out: AT[k][k])
-						{
-							MPI_Status stat;
-
+                        if ((k+1 < p) && block_rank[k+1 + k*p] == myrank)
+                        {
                             MPI_Recv(AT[k][k], kb*kb, MPI_DOUBLE, block_rank[k + k*p], 100000+(k+k*p), MPI_COMM_WORLD, &stat);
-
-                            // Show_mat(kb, kb, AT[k][k], kb);
-						}
-					}
+                            cout << "G2: Recv A[" << k << "][" << k << "] from rank=" << block_rank[k + k*p] << " on rank=" << myrank << " with tag " << 100000+k+k*p << endl;
+                        }
+                    }
                 } // GEQRT Recv task End
 
                 for (int j=k+1; j<p; j++)
@@ -759,8 +733,8 @@ int main(int argc, char ** argv)
             }
         }
 
-        cout << "R:\n";
-        Show_mat(m, m, R, lda);
+        // cout << "R:\n";
+        // Show_mat(m, m, R, lda);
 
         for (int j=0; j<p; j++)
         {
@@ -779,8 +753,8 @@ int main(int argc, char ** argv)
             }
         }
 
-        cout << "Q:\n";
-        Show_mat(m, m, Q, lda);
+        // cout << "Q:\n";
+        // Show_mat(m, m, Q, lda);
         
         // |A|_oo
         double normA = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', m, m, A, lda, work);
