@@ -134,7 +134,7 @@ int main(int argc, char ** argv)
 
    	const int p = (m % nb == 0) ? m/nb : m/nb+1;  // # of tile rows
 	
-    double *AT[p][p];  // AT: Tiled matrix
+    double *AT[p][p];  // AT: Tiled matrix of original matrix
     double *TT[p][p];  // TT: Tiled Householder matrix
     for (int j=0; j<p; j++)
     {
@@ -160,6 +160,20 @@ int main(int argc, char ** argv)
 	int* block_rank = new int [p*p];
 	get_block_rank(block_rank, p);
 
+    #ifdef DEBUG
+    if (myrank == 0)
+    {
+        cout << "block_rank:\n";
+        for (int i=0; i<p; i++)
+        {
+            for (int j=0; j<p; j++)
+                cout << block_rank[i + j*p] << " ";
+            cout << endl;
+        }
+        cout << endl;
+    }
+    #endif
+
     //////////////////////////////////////////////////////////////////////
     // Timer start
     double time;
@@ -181,8 +195,7 @@ int main(int argc, char ** argv)
                 if (block_rank[k + k*p] == myrank)
                 {
                     // #pragma omp task depend(inout:AT[k][k]) depend(out:TT[k][k])
-                    GEQRT(kb, kb, bs, 
-                        AT[k][k], kb, TT[k][k], bs);
+                    GEQRT(kb, kb, bs, AT[k][k], kb, TT[k][k], bs);
                     
                     cout << "GEQRT(" << k << "," << k << ") on rank=" << myrank << endl;
                 }
@@ -192,7 +205,8 @@ int main(int argc, char ** argv)
                 if (block_rank[k + k*p] == myrank)
                 {
                     ///////////////////////////////////////////////////////////
-                    // Send tiles A[k][k] and T[k][k] to j-direction
+                    // G1:Send tiles A[k][k] and T[k][k] to j-direction
+                    // Send1(block_rank, AT[k][k], TT[k][k], kb, kb, bs, p, k);
                     for (int dst=0; dst<nprocs; dst++)
                     {
                         int send_flag = 0;
@@ -214,9 +228,8 @@ int main(int argc, char ** argv)
                                 cblas_dcopy(kb*kb, AT[k][k], 1, ATT, 1);
                                 cblas_dcopy(bs*kb, TT[k][k], 1, ATT+kb*kb, 1);
 
-                                
                                 MPI_Send(ATT, (kb+bs)*kb, MPI_DOUBLE, dst, k+k*p, MPI_COMM_WORLD);
-                                cout << "G1: Send A&T[" << k << "][" << k << "] from rank=" << myrank << " to rank=" << dst << " with tag " << k+k*p << endl;
+                                // cout << "G1: Send A&T[" << k << "][" << k << "] from rank=" << myrank << " to rank=" << dst << " with tag " << k+k*p << endl;
 
                                 delete [] ATT;
                             }
@@ -224,13 +237,13 @@ int main(int argc, char ** argv)
                     }
 
                     ///////////////////////////////////////////////////////////
-                    // Send tiles A[k][k] to block_rank[k+1][k]
+                    // G2:Send tiles A[k][k] to block_rank[k+1][k]
                     // #pragma omp task depend(in: AT[k][k])
                     {
                         if ((k+1 < p) && block_rank[k+1 + k*p] != myrank)
                         {
                             MPI_Send(AT[k][k], kb*kb, MPI_DOUBLE, block_rank[k+1 + k*p], 100000+(k+k*p), MPI_COMM_WORLD);
-                            cout << "G2: Send A[" << k << "][" << k << "] from rank=" << myrank << " to rank=" << block_rank[k+1 + k*p] << " with tag " << 100000+k+k*p << endl;
+                            // cout << "G2: Send A[" << k << "][" << k << "] from rank=" << myrank << " to rank=" << block_rank[k+1 + k*p] << " with tag " << 100000+k+k*p << endl;
                         }
                     }
                 } // GEQRT Send task End
@@ -242,7 +255,7 @@ int main(int argc, char ** argv)
                     int recv_flag = 0;
 
                     ///////////////////////////////////////////////////////////
-                    // Recv tiles A[k][k] and T[k][k] from the ranks of tile A[k][k]
+                    // G1:Recv tiles A[k][k] and T[k][k] from the ranks of tile A[k][k]
 					for (int jj=k+1; jj < p; jj++)
 					{
 						if (myrank == block_rank[k + jj*p])
@@ -266,12 +279,12 @@ int main(int argc, char ** argv)
 
                             delete [] ATT;
 
-                            cout << "G1: Recv A&T[" << k << "][" << k << "] from rank=" << block_rank[k + k*p] << " on rank=" << myrank << " with tag " << k+k*p << endl;
+                            // cout << "G1: Recv A&T[" << k << "][" << k << "] from rank=" << block_rank[k + k*p] << " on rank=" << myrank << " with tag " << k+k*p << endl;
 						}
                     }
 
                     ///////////////////////////////////////////////////////////
-                    // Recv tiles A[k][k] from the ranks of tile A[k][k]
+                    // G2:Recv tiles A[k][k] from the ranks of tile A[k][k]
                     // #pragma omp task depend(in: AT[k][k])
                     {
                         MPI_Status stat;
@@ -279,7 +292,7 @@ int main(int argc, char ** argv)
                         if ((k+1 < p) && block_rank[k+1 + k*p] == myrank)
                         {
                             MPI_Recv(AT[k][k], kb*kb, MPI_DOUBLE, block_rank[k + k*p], 100000+(k+k*p), MPI_COMM_WORLD, &stat);
-                            cout << "G2: Recv A[" << k << "][" << k << "] from rank=" << block_rank[k + k*p] << " on rank=" << myrank << " with tag " << 100000+k+k*p << endl;
+                            // cout << "G2: Recv A[" << k << "][" << k << "] from rank=" << block_rank[k + k*p] << " on rank=" << myrank << " with tag " << 100000+k+k*p << endl;
                         }
                     }
                 } // GEQRT Recv task End
@@ -301,7 +314,7 @@ int main(int argc, char ** argv)
                     }
 
                     ///////////////////////////////////////////////////////////////
-                    // LARFB Send task
+                    // L2:LARFB Send task
                     if (block_rank[k + j*p] == myrank)
                     {
                         ///////////////////////////////////////////////////////////
@@ -310,14 +323,15 @@ int main(int argc, char ** argv)
                         {
                             if ((k+1 < p) && block_rank[k+1 + j*p] != myrank)
                             {
+                                // Send2(AT[k][j], kb, jb, block_rank[k+1 + j*p], k+j*p);
                                 MPI_Send(AT[k][j], kb*jb, MPI_DOUBLE, block_rank[k+1 + j*p], 100000+(k+j*p), MPI_COMM_WORLD);
-                                cout << "L2: Send A[" << k << "][" << j << "] from rank=" << myrank << " to rank=" << block_rank[k+1 + j*p] << " with tag " << 100000+k+j*p << endl;
+                                // cout << "L2: Send A[" << k << "][" << j << "] from rank=" << myrank << " to rank=" << block_rank[k+1 + j*p] << " with tag " << 100000+k+j*p << endl;
                             }
                         }
                     } // LARFB Send task End
 
                     ///////////////////////////////////////////////////////////////
-                    // LARFB Recv task
+                    // L2:LARFB Recv task
                     if (block_rank[k + j*p] != myrank)
                     {
                         ///////////////////////////////////////////////////////////
@@ -329,7 +343,7 @@ int main(int argc, char ** argv)
                             if ((k+1 < p) && block_rank[k+1 + j*p] == myrank)
                             {
                                 MPI_Recv(AT[k][j], kb*jb, MPI_DOUBLE, block_rank[k + j*p], 100000+(k+j*p), MPI_COMM_WORLD, &stat);
-                                cout << "L2: Recv A[" << k << "][" << j << "] from rank=" << block_rank[k + j*p] << " on rank=" << myrank << " with tag " << 100000+k+j*p << endl;
+                                // cout << "L2: Recv A[" << k << "][" << j << "] from rank=" << block_rank[k + j*p] << " on rank=" << myrank << " with tag " << 100000+k+j*p << endl;
                             }
                         }
                     } // LARFB Recv task End
@@ -355,7 +369,7 @@ int main(int argc, char ** argv)
                     if (block_rank[i + k*p] == myrank)
                     {
                         ///////////////////////////////////////////////////////////
-                        // Send tiles A[i][k] and T[i][k] to j-direction
+                        // T1:Send tiles A[i][k] and T[i][k] to j-direction
                         for (int dst=0; dst<nprocs; dst++)
                         {
                             int send_flag = 0;
@@ -377,9 +391,8 @@ int main(int argc, char ** argv)
                                     cblas_dcopy(ib*kb, AT[i][k], 1, ATT, 1);
                                     cblas_dcopy(bs*kb, TT[i][k], 1, ATT+ib*kb, 1);
 
-                                    
                                     MPI_Send(ATT, (ib+bs)*kb, MPI_DOUBLE, dst, i+k*p, MPI_COMM_WORLD);
-                                    cout << "T1: Send A&T[" << i << "][" << k << "] from rank=" << myrank << " to rank=" << dst << " with tag " << i+k*p << endl;
+                                    // cout << "T1: Send A&T[" << i << "][" << k << "] from rank=" << myrank << " to rank=" << dst << " with tag " << i+k*p << endl;
 
                                     delete [] ATT;
                                 }
@@ -387,13 +400,20 @@ int main(int argc, char ** argv)
                         }
 
                         ///////////////////////////////////////////////////////////
-                        // Send tiles A[k][k] to block_rank[i+1][k]
+                        // T2:Send tiles A[k][k] to block_rank[i+1][k]
                         // #pragma omp task depend(in: AT[k][k])
                         {
-                            if (block_rank[(i+1)%p + k*p] != myrank)
+                            if ((i+1 < p) && block_rank[i+1 + k*p] != myrank)
                             {
-                                MPI_Send(AT[k][k], kb*kb, MPI_DOUBLE, block_rank[(i+1)%p + k*p], 100000+(i+k*p), MPI_COMM_WORLD);
-                                cout << "T2: Send A[" << k << "][" << k << "] from rank=" << myrank << " to rank=" << block_rank[(i+1)%p + k*p] << " with tag " << 100000+i+k*p << endl;
+                                 // Send to one level down
+                                MPI_Send(AT[k][k], kb*kb, MPI_DOUBLE, block_rank[i+1 + k*p], 100000+(i+k*p), MPI_COMM_WORLD);
+                                // cout << "T2: Send A[" << k << "][" << k << "] from rank=" << myrank << " to rank=" << block_rank[i+1 + k*p] << " with tag " << 100000+i+k*p << endl;
+                            }
+                            else if (block_rank[k + k*p] != myrank)
+                            {
+                                // Send to top level
+                                MPI_Send(AT[k][k], kb*kb, MPI_DOUBLE, block_rank[k + k*p], 100000+(i+k*p), MPI_COMM_WORLD);
+                                // cout << "T2: Send A[" << k << "][" << k << "] from rank=" << myrank << " to rank=" << block_rank[k + k*p] << " with tag " << 100000+i+k*p << endl;
                             }
                         }
                     } // TSQRT Send task End
@@ -405,7 +425,7 @@ int main(int argc, char ** argv)
                         int recv_flag = 0;
 
                         ///////////////////////////////////////////////////////////
-                        // Recv A[i][k] and T[i][k] from the ranks of tile A[i][k]
+                        // T1:Recv A[i][k] and T[i][k] from the ranks of tile A[i][k]
                         for (int jj=k+1; jj < p; jj++)
 					    {
 						    if (myrank == block_rank[i + jj*p])
@@ -423,25 +443,25 @@ int main(int argc, char ** argv)
                                 double *ATT = new double[(ib+bs)*kb];    // private 宣言で共有変数にできるかも（要確認）
 
 							    MPI_Recv(ATT, (ib+bs)*kb, MPI_DOUBLE, block_rank[i + k*p], i+k*p, MPI_COMM_WORLD, &stat);
-                                cout << "T1: Recv A&T[" << i << "][" << k << "] from rank=" << block_rank[i + k*p] << " on rank=" << myrank << " with tag " << i+k*p << endl;
                                                         
                                 cblas_dcopy(ib*kb, ATT, 1, AT[i][k], 1);
                                 cblas_dcopy(bs*kb, ATT+ib*kb, 1, TT[i][k], 1);
 
                                 delete [] ATT;
+                                // cout << "T1: Recv A&T[" << i << "][" << k << "] from rank=" << block_rank[i + k*p] << " on rank=" << myrank << " with tag " << i+k*p << endl;                                
     						}
                         }
 
                         ///////////////////////////////////////////////////////////
-                        // Recv tiles A[k][k] from the ranks of tile A[i][k]
+                        // T2:Recv tiles A[k][k] from the ranks of tile A[i][k]
                         // #pragma omp task depend(in: AT[k][k])
                         {
                             MPI_Status stat;
 
-                            if (block_rank[(i+1)%p + k*p] == myrank)
+                            if (((i+1 < p) && block_rank[i+1 + k*p] == myrank) || (block_rank[k + k*p] == myrank))
                             {
-                                MPI_Recv(AT[k][k], kb*kb, MPI_DOUBLE, block_rank[i + k*p], 100000+(i+k*p), MPI_COMM_WORLD, &stat);
-                                cout << "T2: Recv A[" << k << "][" << k << "] from rank=" << block_rank [i + k*p] << " on rank=" << myrank << " with tag " << 100000+i+k*p << endl;
+                                 MPI_Recv(AT[k][k], kb*kb, MPI_DOUBLE, block_rank[i + k*p], 100000+(i+k*p), MPI_COMM_WORLD, &stat);
+                                 // cout << "T2: Recv A&T[" << k << "][" << k << "] from rank=" << block_rank[i + k*p] << " on rank=" << myrank << " with tag " << 100000+i+k*p << endl; 
                             }
                         }
                     } // TSQRT Recv task End
@@ -467,40 +487,22 @@ int main(int argc, char ** argv)
                         if (block_rank[i + j*p] == myrank)
                         {
                             ///////////////////////////////////////////////////////////
-                            // Send tiles A[k][j] to block_rank[i+1][j]
+                            // S2:Send tiles A[k][j] to block_rank[i+1][j]
                             // #pragma omp task depend(in: AT[k][j])
                             {
-                                if (block_rank[(i+1)%p + j*p] != myrank)
+                                if ((i+1 < p) && block_rank[i+1 + j*p] != myrank)
                                 {
-                                    MPI_Send(AT[k][j], kb*jb, MPI_DOUBLE, block_rank[(i+1)%p + j*p], 100000+(i+j*p), MPI_COMM_WORLD);
-                                    cout << "S2: Send A[" << k << "][" << j << "] from rank=" << myrank << " to rank=" << block_rank[(i+1)%p + j*p] << " with tag " << 100000+i+j*p << endl;
+                                    // Send to one level down
+                                    MPI_Send(AT[k][j], kb*jb, MPI_DOUBLE, block_rank[i+1 + j*p], 100000+(i + j*p), MPI_COMM_WORLD);
+                                    // cout << "S2: Send A[" << k << "][" << j << "] from rank=" << myrank << " to rank=" << block_rank[i+1 + j*p] << " with tag " << 100000 + i + j*p << endl;
+                                }
+                                else if (block_rank[k + j*p] != myrank)
+                                {
+                                    // Send to top level
+                                    MPI_Send(AT[k][j], kb*jb, MPI_DOUBLE, block_rank[k + j*p], 100000+(i + j*p), MPI_COMM_WORLD);
+                                    // cout << "S2: Send A[" << k << "][" << j << "] from rank=" << myrank << " to rank=" << block_rank[k + j*p] << " with tag " << 100000 + i + j*p << endl;
                                 }
                             }
-                            // ------------------
-
-                            // int *send_flags = new int[nprocs];
-
-                            // // Send tiles A[k][j] to i-direction
-                            // // Initialize send_flags
-                            // for (int ii=0; ii<nprocs; ii++)
-                            //     send_flags[ii] = 0;
-                        
-                            // for (int ii = k + 1; ii < p; ii++)
-                            // {
-                            //     if (!send_flags[block_rank[ii + j*p]])
-                            //         send_flags[block_rank[ii + j*p]] = 1;
-                            // }
-
-                            // for (int dst=0; dst<nprocs; dst++)
-                            // {
-                            //     if (send_flags[dst] && dst != myrank)
-                            //     {
-                            //         // #pragma omp task depend(in: AT[k][j])
-                            //         MPI_Send(AT[k][j], kb*jb, MPI_DOUBLE, dst, i+j*p, MPI_COMM_WORLD);
-                            //     }
-                            // }
-
-                            // delete [] send_flags;
                         } // SSRFB Send task end
 
                         ///////////////////////////////////////////////////////////////
@@ -508,37 +510,18 @@ int main(int argc, char ** argv)
                         if (block_rank[i + j*p] != myrank)
                         {
                              ///////////////////////////////////////////////////////////
-                            // Recv tiles A[k][j] from the ranks of tile A[i][j]
+                            // S2:Recv tiles A[k][j] from the ranks of tile A[i][j]
                             // #pragma omp task depend(in: AT[k][j])
                             {
                                 MPI_Status stat;
 
-                                if (block_rank[(i+1)%p + j*p] == myrank)
+                                if (((i+1 < p) && block_rank[i+1 + j*p] == myrank) || (block_rank[k + j*p] == myrank))
                                 {
-                                    MPI_Recv(AT[k][j], kb*jb, MPI_DOUBLE, block_rank[i + j*p], 100000+(i+j*p), MPI_COMM_WORLD, &stat);
-                                    cout << "L2: Recv A[" << k << "][" << j << "] from rank=" << block_rank [i + j*p] << " on rank=" << myrank << " with tag " << 100000+i+j*p << endl;
+                                    // Recv from one level up
+                                    MPI_Recv(AT[k][j], kb*jb, MPI_DOUBLE, block_rank[i + j*p], 100000+(i + j*p), MPI_COMM_WORLD, &stat);
+                                    // cout << "S2: Recv A[" << k << "][" << j << "] from rank=" << myrank << " to rank=" << block_rank[k + j*p] << " with tag " << 100000 + i + j*p << endl;
                                 }
                             }
-                            // ------------------
-
-                            // int recv_flag = 0;
-
-                            // // Recv A[k][j] from the ranks of tile A[i][j]
-                            // for (int ii = k + 1; ii < p; ii++)
-                            // {
-                            //     if (myrank == block_rank[ii + j*p])
-                            //         recv_flag = 1;
-                            // }
-
-                            // if (recv_flag)
-                            // {
-                            //     // #pragma omp task depend(out: AT[k][j])
-                            //     {
-                            //         MPI_Status stat;
-
-                            //         MPI_Recv(AT[k][j], kb*jb, MPI_DOUBLE, block_rank[i + j*p], k+j*p, MPI_COMM_WORLD, &stat);
-                            //     }
-                            // }
                         } // SSRFB Recv task end
                     }
                 }
