@@ -72,10 +72,10 @@ CXXFLAGS += -DDEBUG -g
 all: dgeqrf TileQR
 
 dgeqrf: $(LOBJS)
-	$(CXX) $(CFLAGS) -o $@ $(LOBJS) $(BLAS_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(LOBJS) $(BLAS_LIBS)
 
 TileQR : $(OBJS)
-	$(CXX) $(CFLAGS) -o $@ $(OBJS) $(PLASMA_LIBS) $(BLAS_LIBS) 
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(PLASMA_LIBS) $(BLAS_LIBS) 
 
 .cpp.o :
 	$(CXX) $(CXXFLAGS) -c $<
